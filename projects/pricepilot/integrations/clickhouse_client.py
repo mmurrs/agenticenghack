@@ -85,9 +85,9 @@ def add_tracked_product(
         client.insert(
             tracked_table,
             [[user_id, product_id, product_name, amazon_url, walmart_url,
-              threshold, 1, datetime.now(timezone.utc)]],
+              threshold, 1]],
             column_names=["user_id", "product_id", "product_name", "amazon_url",
-                          "walmart_url", "threshold", "active", "created_at"],
+                          "walmart_url", "threshold", "active"],
         )
 
 
@@ -100,7 +100,7 @@ def get_tracked_products() -> list[dict]:
                    threshold, active
             FROM {tracked_table}
             WHERE active = 1
-            ORDER BY created_at DESC
+            ORDER BY user_id, product_id
             """,
         ).named_results()
     return list(rows)

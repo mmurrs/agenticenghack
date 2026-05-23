@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS pricepilot.tracked_products (
   amazon_url   String,
   walmart_url  String DEFAULT '',
   threshold    Float64,
-  active       UInt8 DEFAULT 1
+  active       UInt8 DEFAULT 1,
+  created_at   DateTime DEFAULT now()
 ) ENGINE = ReplacingMergeTree()
 ORDER BY (user_id, product_id);
