@@ -64,14 +64,21 @@ Never change function signatures in `integrations/`. Only replace function bodie
 
 ## Hermes provider config
 
-The LiteLLM proxy requires `model.provider: custom` in `config.yaml` (not `openrouter`). The OPENAI_API_KEY in `.env` is passed as a Bearer token.
+**Must use `custom_providers` + `key_env`** — bare `provider: custom` ignores `OPENAI_API_KEY` for non-openai URLs and sends "no-key-required", causing 401s.
 
 ```yaml
+custom_providers:
+  - name: litellm
+    base_url: <OPENAI_BASE_URL from .env>
+    key_env: OPENAI_API_KEY   # Hermes reads this env var for the Bearer token
+    model: qwen35-35b
+
 model:
-  provider: custom
+  provider: litellm           # references the custom_providers name above
   model: qwen35-35b
-  base_url: https://spark-2bc4.tail3a01e2.ts.net/v1
 ```
+
+The template at `hermes/hermes-config.yaml` uses `OPENAI_BASE_URL_PLACEHOLDER`; `setup.sh` and `deploy.sh` substitute it from `OPENAI_BASE_URL` in `.env` at install time.
 
 ## Nimble auth
 
@@ -89,6 +96,8 @@ Uses TLS on port 8443 with `clickhouse_connect`. Table names are configurable vi
 - Don't commit `.env`, `~/.hermes/.env`, or any file with real API keys
 - Don't add `agent/` or `bot/` Python modules (superseded by Hermes)
 - Don't run `hermes gateway start` inside Docker/containers — use `hermes gateway run`
+- Don't use bare `provider: custom` in config.yaml — always use named `custom_providers` + `key_env`
+- Don't run `hermes config set model` — it can override the provider back to a default and break auth
 - Don't restart the gateway unnecessarily (each restart triggers a Telegram polling conflict for ~20 seconds)
 - Don't change function signatures in `integrations/`
 - Don't install Playwright browsers (use `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`)

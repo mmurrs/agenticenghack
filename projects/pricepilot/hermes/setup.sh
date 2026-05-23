@@ -24,9 +24,6 @@ if [ -n "${OPENAI_BASE_URL:-}" ]; then
   sed -i "s|OPENAI_BASE_URL_PLACEHOLDER|$OPENAI_BASE_URL|" "$HERMES_HOME/config.yaml"
 fi
 
-echo "==> Setting model (custom LiteLLM provider)..."
-hermes config set model qwen35-35b 2>/dev/null || true
-
 echo "==> Installing PricePilot skills..."
 mkdir -p "$HERMES_HOME/skills/pricepilot"
 cp -r "$PRICEPILOT_DIR/skills/"* "$HERMES_HOME/skills/pricepilot/"
