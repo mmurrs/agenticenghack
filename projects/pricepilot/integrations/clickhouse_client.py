@@ -59,9 +59,9 @@ def store_price_event(
 
 def get_price_history(product_id: str, hours: int = 24) -> list[dict]:
     with get_client() as client:
-        rows = client.query(
+        result = client.query(
             f"""
-            SELECT price, toString(timestamp) AS timestamp, source
+            SELECT price, toString(timestamp) AS ts, source
             FROM {_table()}
             WHERE product_id = {{product_id:String}}
               AND timestamp >= now() - INTERVAL {{hours:UInt32}} HOUR
@@ -69,7 +69,7 @@ def get_price_history(product_id: str, hours: int = 24) -> list[dict]:
             """,
             parameters={"product_id": product_id, "hours": hours},
         ).named_results()
-    return list(rows)
+        return [{"price": r["price"], "timestamp": r["ts"], "source": r["source"]} for r in result]
 
 
 def add_tracked_product(
