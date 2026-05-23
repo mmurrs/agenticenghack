@@ -1,0 +1,30 @@
+{
+  "name": "pricepilot-search",
+  "version": "0.1.0",
+  "description": "Paid Amazon/Walmart cheapest-price lookup API built with dual402 and Nimble.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --env-file=.env server.js",
+    "test": "node --test tests/smoke.mjs",
+    "init": "./scripts/init.sh",
+    "deploy": "./scripts/deploy.sh"
+  },
+  "dependencies": {
+    "@nimble-way/nimble-js": "^0.14.0",
+    "dual402": "^0.1.0",
+    "express": "^5.0.0"
+  },
+  "overrides": {
+    "mppx": "0.6.14"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mmurrs/agenticenghack.git"
+  }
+}

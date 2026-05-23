@@ -1,7 +1,9 @@
 # Env
 .env
+.env.*
 .env.local
 .env.*.local
+!.env.example
 
 # Claude Code local overrides (may contain secrets)
 .claude/settings.local.json
@@ -41,3 +43,9 @@ yarn-error.log*
 .cache/
 tmp/
 .understand-anything/
+
+# Local deploy state
+scripts/.deploy-config
+scripts/.merchant-privkey
+**/scripts/.deploy-config
+**/scripts/.merchant-privkey
