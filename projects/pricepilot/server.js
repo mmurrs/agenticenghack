@@ -41,12 +41,16 @@ app.use((req, res, next) => {
 
 const RECIPIENT_WALLET = process.env.RECIPIENT_WALLET;
 const TEMPO_USDC = "0x20C000000000000000000000b9537d11c60E8b50";
+const BASE_URL = process.env.BASE_URL || process.env.PUBLIC_BASE_URL;
+const MPP_REALM = process.env.MPP_REALM || hostnameFromUrl(BASE_URL);
 
 const dual = createDual402({
+  baseUrl: BASE_URL,
   mpp: {
     currency: process.env.USDC_TEMPO || TEMPO_USDC,
     recipient:
       process.env.MPP_RECIPIENT || RECIPIENT_WALLET || process.env.RECIPIENT,
+    realm: MPP_REALM,
     secretKey: process.env.MPP_SECRET_KEY,
     testnet: process.env.MPP_TESTNET === "true",
   },
@@ -58,10 +62,52 @@ const dual = createDual402({
   },
 });
 
+function hostnameFromUrl(url) {
+  if (!url) return undefined;
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return undefined;
+  }
+}
+
 // CDP Bazaar / x402scan / agentic.market discovery block.
 // Surfaced inside the 402 PaymentRequired payload as
 // `extensions.bazaar.{info, schema}` so registries index a typed listing
 // instead of a probe-only fallback. See docs.cdp.coinbase.com/x402/bazaar.
+const findCheapestOutputSchema = {
+  type: "object",
+  properties: {
+    product_id: { type: "string" },
+    best: {
+      type: "object",
+      properties: {
+        source: { type: "string" },
+        price: { type: "number" },
+        currency: { type: "string" },
+        in_stock: { type: "boolean" },
+        seller: { type: "string" },
+        url: { type: "string" },
+        variant: { type: "object" },
+      },
+    },
+    all_offers: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          source: { type: "string" },
+          price: { type: "number" },
+          in_stock: { type: "boolean" },
+          url: { type: "string" },
+        },
+      },
+    },
+    missing_sources: { type: "array", items: { type: "string" } },
+    checked_at: { type: "string", format: "date-time" },
+  },
+};
+
 const findCheapestDiscovery = {
   info: {
     type: "http",
@@ -157,12 +203,10 @@ const findCheapestDiscovery = {
         required: ["type", "method", "bodyType", "body"],
       },
       output: {
-        type: "object",
-        properties: { type: { type: "string" } },
-        required: ["type"],
+        ...findCheapestOutputSchema,
       },
     },
-    required: ["input"],
+    required: ["input", "output"],
   },
 };
 
@@ -218,38 +262,7 @@ const findCheapestParams = {
   },
 };
 
-const findCheapestResponse = {
-  type: "object",
-  properties: {
-    product_id: { type: "string" },
-    best: {
-      type: "object",
-      properties: {
-        source: { type: "string" },
-        price: { type: "number" },
-        currency: { type: "string" },
-        in_stock: { type: "boolean" },
-        seller: { type: "string" },
-        url: { type: "string" },
-        variant: { type: "object" },
-      },
-    },
-    all_offers: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          source: { type: "string" },
-          price: { type: "number" },
-          in_stock: { type: "boolean" },
-          url: { type: "string" },
-        },
-      },
-    },
-    missing_sources: { type: "array", items: { type: "string" } },
-    checked_at: { type: "string", format: "date-time" },
-  },
-};
+const findCheapestResponse = findCheapestOutputSchema;
 
 dualDiscovery(app, dual, {
   info: {

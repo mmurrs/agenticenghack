@@ -23,7 +23,7 @@ const FACILITATOR_TIMEOUT_MS = 30_000;
 
 /**
  * @param {object} config
- * @param {object} config.mpp          - MPP config: { currency, recipient, secretKey }
+ * @param {object} config.mpp          - MPP config: { currency, recipient, secretKey, realm? }
  * @param {object} config.x402         - x402 config: { payTo, network, facilitatorUrl, asset? }
  */
 export function createDual402(config) {
@@ -35,6 +35,7 @@ export function createDual402(config) {
         ...(config.mpp.testnet && { testnet: true }),
       }),
     ],
+    realm: config.mpp.realm,
     secretKey: config.mpp.secretKey,
   });
 
@@ -74,7 +75,10 @@ export function createDual402(config) {
       const handler = async (req, res, next) => {
         try {
           const baseUrl =
-            process.env.BASE_URL || `${req.protocol}://${req.get("host")}`;
+            config.baseUrl ||
+            process.env.BASE_URL ||
+            process.env.PUBLIC_BASE_URL ||
+            `${req.protocol}://${req.get("host")}`;
           const resourceUrl = `${baseUrl}${req.originalUrl}`;
           const paymentRequirements = buildX402PaymentRequirements({
             amountRaw,
