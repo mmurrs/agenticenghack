@@ -4,7 +4,7 @@ Tool-call definitions for the Search project.
 Hermes-facing contract:
   find_cheapest_product(...)
 
-The public tool takes an explicit shoe spec. Hermes is responsible for turning
+The public tool takes an explicit product spec. Hermes is responsible for turning
 user language into these fields and asking follow-up questions when required.
 This module is responsible for validating the spec, resolving retailer variants,
 ranking buyable offers, and persisting observations.
@@ -36,7 +36,7 @@ from typing import Any, Literal, Optional
 # Types
 # ---------------------------------------------------------------------------
 
-Category = Literal["shoes"]
+Category = str  # any product category, e.g. "shoes", "electronics", "general"
 Condition = Literal["new", "used", "ds", "any"]
 Gender = Literal["men", "women", "kids", "unisex"]
 Source = Literal["amazon", "walmart", "stockx"]
@@ -54,8 +54,8 @@ class SizeSpec:
 class ProductSpec:
     brand: str
     model: str
-    size: SizeSpec
-    category: Category = "shoes"
+    size: Optional[SizeSpec] = None   # None for non-shoe products
+    category: Category = "general"
     color: Optional[str] = None
     condition: Condition = "new"
     postal_code: str = "10001"
@@ -106,7 +106,8 @@ _INPUT_SCHEMA = {
             "type": "string",
             "description": (
                 "Original user query for traceability, e.g. "
-                "'Nike Killshot 2 Sail Lucid Green size 11.5'."
+                "'Nike Killshot 2 Sail Lucid Green size 11.5' or "
+                "'Sony WH-1000XM5 headphones'."
             ),
         },
         "user_id": {
@@ -115,18 +116,21 @@ _INPUT_SCHEMA = {
         },
         "category": {
             "type": "string",
-            "enum": ["shoes"],
-            "default": "shoes",
-            "description": "Product category. V1 supports shoes only.",
+            "default": "general",
+            "description": (
+                "Product category, e.g. 'shoes', 'electronics', 'clothing', 'general'. "
+                "Use 'shoes' for footwear (enables size matching). "
+                "Use 'general' or a descriptive category for any other product."
+            ),
         },
-        "brand": {"type": "string", "description": "Shoe brand, e.g. 'Nike'."},
+        "brand": {"type": "string", "description": "Product brand, e.g. 'Nike', 'Sony', 'Crocs'."},
         "model": {
             "type": "string",
-            "description": "Model or product line, e.g. 'Killshot 2'.",
+            "description": "Model or product line, e.g. 'Killshot 2', 'WH-1000XM5'.",
         },
         "color": {
             "type": "string",
-            "description": "Colorway. Optional for demo, but strongly recommended.",
+            "description": "Color or colorway. Optional but recommended for accuracy.",
         },
         "size": {
             "type": "object",
@@ -143,7 +147,10 @@ _INPUT_SCHEMA = {
                 },
             },
             "required": ["value"],
-            "description": "Requested shoe size. Hermes should make this explicit.",
+            "description": (
+                "Requested shoe size. Only needed for footwear/clothing. "
+                "Omit for electronics and other non-sized products."
+            ),
         },
         "condition": {
             "type": "string",
@@ -165,16 +172,18 @@ _INPUT_SCHEMA = {
             ),
         },
     },
-    "required": ["brand", "model", "size"],
+    "required": ["brand", "model"],
 }
 
 TOOL_SCHEMAS = [
     {
         "name": "find_cheapest_product",
         "description": (
-            "Find the cheapest currently buyable offer for an explicitly specified "
-            "shoe. Hermes should parse or ask for brand, model, size, and preferably "
-            "color before calling. V1 defaults to Amazon only via source_scope='amazon'."
+            "Find the cheapest currently buyable offer for any explicitly specified "
+            "product (shoes, electronics, clothing, accessories, etc.). "
+            "Hermes should parse or ask for brand and model. "
+            "Size is only needed for footwear/clothing. "
+            "V1 defaults to Amazon only via source_scope='amazon'."
         ),
         "input_schema": _INPUT_SCHEMA,
     },
@@ -191,7 +200,7 @@ def build_product_spec(
     model: str,
     size: SizeSpec | dict[str, Any] | float | int | None = None,
     size_us_men: Optional[float] = None,
-    category: Category = "shoes",
+    category: Category = "general",
     color: Optional[str] = None,
     condition: Condition = "new",
     postal_code: str = "10001",
@@ -235,7 +244,11 @@ def _normalize_size(
     size: SizeSpec | dict[str, Any] | float | int | None,
     *,
     size_us_men: Optional[float] = None,
-) -> SizeSpec:
+) -> Optional[SizeSpec]:
+    """Return a SizeSpec, or None if no size was provided (non-shoe products)."""
+    if size is None and size_us_men is None:
+        return None
+
     if isinstance(size, SizeSpec):
         return size
 
@@ -252,7 +265,7 @@ def _normalize_size(
         raw_system = "US"
         raw_gender = "men"
     else:
-        raise ValueError("size.value is required")
+        return None
 
     if raw_system != "US":
         raise ValueError("only US shoe sizes are supported in v1")
@@ -268,14 +281,13 @@ def _normalize_size(
 
 
 def _validate_product_spec(spec: ProductSpec) -> None:
-    if spec.category != "shoes":
-        raise ValueError("category must be 'shoes' in v1")
     if spec.condition not in {"new", "used", "ds", "any"}:
         raise ValueError("condition must be new, used, ds, or any")
     if spec.source_scope not in {"amazon", "retail", "all"}:
         raise ValueError("source_scope must be amazon, retail, or all")
-    if not (0 < spec.size.value < 25):
-        raise ValueError("shoe size must be greater than 0 and less than 25")
+    if spec.size is not None:
+        if not (0 < spec.size.value < 25):
+            raise ValueError("shoe size must be greater than 0 and less than 25")
 
 
 # ---------------------------------------------------------------------------
@@ -333,10 +345,11 @@ async def _amazon_offer_for_candidate(spec: ProductSpec, color_asin: str) -> Opt
     if price is None:
         return None
 
-    actual_size = str(parsing.get("size") or parsing.get("option_name") or "")
     actual_color = str(parsing.get("color") or "")
-    if actual_size and not _size_matches(actual_size, spec.size.value):
-        return None
+    if spec.size is not None:
+        actual_size = str(parsing.get("size") or parsing.get("option_name") or "")
+        if actual_size and not _size_matches(actual_size, spec.size.value):
+            return None
     if spec.color and actual_color and _token_score(spec.color, actual_color) <= 0:
         return None
     if not _pdp_matches_spec(spec, parsing):
@@ -453,7 +466,7 @@ def _amazon_query(spec: ProductSpec) -> str:
     parts = [spec.brand, spec.model]
     if spec.color:
         parts.append(spec.color)
-    if spec.category == "shoes":
+    if spec.size is not None:
         if spec.size.gender == "men":
             parts.append("mens")
         elif spec.size.gender == "women":
@@ -551,16 +564,27 @@ def _pick_amazon_variant_asin(spec: ProductSpec, resp: Any) -> Optional[str]:
 
     best: Optional[tuple[int, int, str]] = None
     for position, (asin, values) in enumerate(dimension_map.items()):
-        if not isinstance(values, list) or len(values) < 2:
+        if not isinstance(values, list) or len(values) < 1:
             continue
-        size_raw = str(values[0])
-        color_raw = str(values[1])
-        if not _size_matches(size_raw, spec.size.value):
-            continue
-        color_score = _token_score(spec.color, color_raw) if spec.color else 1
-        if color_score <= 0:
-            continue
-        candidate = (color_score, -position, asin)
+        if spec.size is not None:
+            # Shoe/clothing: match size dimension first
+            if len(values) < 2:
+                continue
+            size_raw = str(values[0])
+            color_raw = str(values[1])
+            if not _size_matches(size_raw, spec.size.value):
+                continue
+            color_score = _token_score(spec.color, color_raw) if spec.color else 1
+            if color_score <= 0:
+                continue
+            candidate = (color_score, -position, asin)
+        else:
+            # Non-shoe: only match color if provided, otherwise accept all
+            color_raw = str(values[1]) if len(values) >= 2 else ""
+            color_score = _token_score(spec.color, color_raw) if spec.color and color_raw else 1
+            if color_score <= 0:
+                continue
+            candidate = (color_score, -position, asin)
         if best is None or candidate > best:
             best = candidate
     return best[2] if best else None
@@ -640,7 +664,7 @@ async def find_cheapest_product(
     brand: str,
     model: str,
     size: SizeSpec | dict[str, Any] | float | int | None = None,
-    category: Category = "shoes",
+    category: Category = "general",
     color: Optional[str] = None,
     condition: Condition = "new",
     postal_code: str = "10001",
@@ -963,11 +987,15 @@ def _spec_to_dict(spec: ProductSpec) -> dict[str, Any]:
         "model": spec.model,
         "category": spec.category,
         "color": spec.color,
-        "size": {
-            "system": spec.size.system,
-            "gender": spec.size.gender,
-            "value": spec.size.value,
-        },
+        "size": (
+            {
+                "system": spec.size.system,
+                "gender": spec.size.gender,
+                "value": spec.size.value,
+            }
+            if spec.size is not None
+            else None
+        ),
         "condition": spec.condition,
         "postal_code": spec.postal_code,
         "source_scope": spec.source_scope,
