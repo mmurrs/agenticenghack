@@ -830,56 +830,56 @@ def _persist_observation(spec: ProductSpec, offer: Offer) -> str:
 
     try:
         import clickhouse_connect
-    except ModuleNotFoundError:
-        return f"local:{observation_id}"
-
-    client = clickhouse_connect.get_client(
-        host=os.environ["CLICKHOUSE_HOST"],
-        port=int(os.environ.get("CLICKHOUSE_PORT", "8443")),
-        username=os.environ.get("CLICKHOUSE_USER", "nimble_loader"),
-        password=os.environ["CLICKHOUSE_PASSWORD"],
-        database=os.environ.get("CLICKHOUSE_DATABASE", "scraping"),
-        secure=True,
-    )
-    client.insert(
-        "amazon_products",
-        [
+        # amazon_products lives in the 'scraping' DB (Nimble teammate schema)
+        client = clickhouse_connect.get_client(
+            host=os.environ["CLICKHOUSE_HOST"],
+            port=int(os.environ.get("CLICKHOUSE_PORT", "8443")),
+            username=os.environ.get("CLICKHOUSE_USER", "nimble_loader"),
+            password=os.environ["CLICKHOUSE_PASSWORD"],
+            database="scraping",
+            secure=True,
+        )
+        client.insert(
+            "amazon_products",
             [
-                _asin_from_url(offer.url) or "",
-                offer.title,
-                spec.brand,
-                offer.price,
-                None,
-                offer.currency,
-                1 if offer.in_stock else 0,
-                None,
-                None,
-                "Shoes",
-                offer.seller,
-                spec.postal_code,
-                offer.url,
-                observation_id,
-                json.dumps({"spec": _spec_to_dict(spec), "offer": _offer_to_dict(offer)}),
-            ]
-        ],
-        column_names=[
-            "asin",
-            "product_title",
-            "brand",
-            "web_price",
-            "list_price",
-            "currency",
-            "availability",
-            "average_of_reviews",
-            "number_of_reviews",
-            "category",
-            "seller",
-            "zip_code",
-            "url",
-            "task_id",
-            "raw",
-        ],
-    )
+                [
+                    _asin_from_url(offer.url) or "",
+                    offer.title,
+                    spec.brand,
+                    offer.price,
+                    None,
+                    offer.currency,
+                    1 if offer.in_stock else 0,
+                    None,
+                    None,
+                    spec.category,
+                    offer.seller,
+                    spec.postal_code,
+                    offer.url,
+                    observation_id,
+                    json.dumps({"spec": _spec_to_dict(spec), "offer": _offer_to_dict(offer)}),
+                ]
+            ],
+            column_names=[
+                "asin",
+                "product_title",
+                "brand",
+                "web_price",
+                "list_price",
+                "currency",
+                "availability",
+                "average_of_reviews",
+                "number_of_reviews",
+                "category",
+                "seller",
+                "zip_code",
+                "url",
+                "task_id",
+                "raw",
+            ],
+        )
+    except Exception:
+        pass
     return observation_id
 
 
