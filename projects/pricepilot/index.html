@@ -658,6 +658,10 @@
       background: var(--paper);
       position: relative;
     }
+    .endpoint-section {
+      padding-top: 1rem;
+      border-top: 1px dashed var(--line);
+    }
     .endpoint-card .corner {
       position: absolute;
       width: 8px; height: 8px;
@@ -1421,6 +1425,33 @@
         </div>
       </section>
 
+      <section class="sec endpoint-section">
+        <p class="sec-h">Paid service endpoint <span class="num">[powered by x402 / MPP]</span></p>
+        <div style="margin-bottom: 0.875rem; font-size: 0.75rem; color: var(--ink-soft); display: flex; align-items: center; gap: 0.5rem;">
+          <span style="display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: blink 1.6s infinite;"></span>
+          <span style="font-style: italic;">Live now — checking Amazon &amp; Walmart every request</span>
+        </div>
+        <div class="endpoint-card">
+          <div class="corner tl"></div>
+          <div class="corner tr"></div>
+          <div class="corner bl"></div>
+          <div class="corner br"></div>
+          <div>
+            <span class="endpoint-method">POST</span>
+            <span class="endpoint-path">/find_cheapest</span>
+            <span class="price-stamp">$0.05</span>
+          </div>
+          <p class="endpoint-meta">Pass an explicit product spec — brand, model, variant attributes (color, size, storage). PricePilot returns the cheapest verified buyable offer plus a stable <code class="inline">product_id</code> your agent can reuse.</p>
+          <div class="retailers">
+            <span class="retail-badge live">Amazon &mdash; live</span>
+            <span class="retail-badge live">Walmart &mdash; live</span>
+            <span class="retail-badge queue">Target &mdash; next</span>
+            <span class="retail-badge queue">eBay &mdash; next</span>
+            <span class="retail-badge queue">Facebook &mdash; next</span>
+          </div>
+        </div>
+      </section>
+
       <section class="sec">
         <p class="sec-h">Things your agent can ask <span class="num">[4]</span></p>
         <div style="margin-bottom: 0.75rem; font-size: 0.6875rem; color: var(--muted); font-style: italic;">
@@ -1529,33 +1560,6 @@
               <div class="title">Hermes completes the job</div>
               <div class="desc">The cheapest verified offer comes back with seller, stock, URL, observation IDs, and missing-source reasons.</div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="sec">
-        <p class="sec-h">Paid service endpoint <span class="num">[powered by x402 / MPP]</span></p>
-        <div style="margin-bottom: 0.875rem; font-size: 0.75rem; color: var(--ink-soft); display: flex; align-items: center; gap: 0.5rem;">
-          <span style="display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: blink 1.6s infinite;"></span>
-          <span style="font-style: italic;">Live now — checking Amazon &amp; Walmart every request</span>
-        </div>
-        <div class="endpoint-card">
-          <div class="corner tl"></div>
-          <div class="corner tr"></div>
-          <div class="corner bl"></div>
-          <div class="corner br"></div>
-          <div>
-            <span class="endpoint-method">POST</span>
-            <span class="endpoint-path">/find_cheapest</span>
-            <span class="price-stamp">$0.05</span>
-          </div>
-          <p class="endpoint-meta">Pass an explicit product spec — brand, model, variant attributes (color, size, storage). PricePilot returns the cheapest verified buyable offer plus a stable <code class="inline">product_id</code> your agent can reuse.</p>
-          <div class="retailers">
-            <span class="retail-badge live">Amazon &mdash; live</span>
-            <span class="retail-badge live">Walmart &mdash; live</span>
-            <span class="retail-badge queue">Target &mdash; next</span>
-            <span class="retail-badge queue">eBay &mdash; next</span>
-            <span class="retail-badge queue">Facebook &mdash; next</span>
           </div>
         </div>
       </section>
