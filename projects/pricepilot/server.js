@@ -326,31 +326,33 @@ app.get("/health", (req, res) => {
   res.json({ ok: true, service: "pricepilot", version: "0.1.0" });
 });
 
-const SKILL_MD = `# PricePilot Skill
+const SKILL_MD = `---
+name: pricepilot-find-cheapest
+description: Use PricePilot's paid find_cheapest endpoint to find the cheapest verified buyable offer for a specific product across Amazon and Walmart.
+version: 1.0.0
+author: PricePilot
+license: MIT
+metadata:
+  hermes:
+    tags: [Shopping, Price Comparison, Ecommerce, x402, MPP]
+---
 
-Use this skill to find the cheapest verified buyable offer for a specific product across Amazon and Walmart.
+# PricePilot Find Cheapest
 
-## What PricePilot does
-
-PricePilot resolves an exact product variant on Amazon and Walmart in parallel and returns the cheapest currently-in-stock offer. It does not return SERP estimates — every price is pulled from the live product page at request time.
-
-Each check costs **$0.05 USD via x402 (Base) or MPP (Tempo)**. Both payment protocols are accepted on every endpoint.
-
-## Prerequisites
-
-The agent needs a USDC wallet your code can sign with. Any one of:
-
-- **AgentCash**: \`npx agentcash onboard\` — handles MPP and x402 automatically.
-- **MPP**: Use \`mppx\` with a Tempo USDC wallet.
-- **x402**: Use \`x402-fetch\` with a Base USDC wallet.
+Use this skill when the user asks where to buy a specific product for the lowest price, asks for the cheapest offer, or wants a verified buy link across retailers.
 
 ## Endpoint
 
-### POST /find_cheapest
+- Base URL: https://pricepilot-sepia.vercel.app
+- Tool call: \`POST /find_cheapest\`
+- OpenAPI: https://pricepilot-sepia.vercel.app/openapi.json
+- Payment: $0.05 USD per successful check via x402 or MPP.
 
-Pass an explicit product spec. Required fields: \`brand\`, \`model\`. Variant fields (\`color\`, \`size\`, \`condition\`) sharpen the match — strongly recommended for footwear, apparel, electronics with multiple SKUs.
+The endpoint returns verified buyable offers. Do not invent prices or use search-result estimates.
 
-Request body:
+## Request
+
+Send JSON with \`brand\` and \`model\`. Add variant fields whenever the user provides them, especially shoe size, colorway, storage, capacity, or condition.
 
 \`\`\`json
 {
@@ -364,7 +366,30 @@ Request body:
 }
 \`\`\`
 
-Response:
+Fields:
+
+- \`brand\`: required string.
+- \`model\`: required string. Include storage/capacity in this string for electronics when relevant.
+- \`color\`: optional string.
+- \`size\`: optional object. For shoes, include \`system: "US"\`, \`gender\`, and numeric \`value\`.
+- \`condition\`: \`"new"\`, \`"used"\`, \`"ds"\`, or \`"any"\`; default to \`"new"\`.
+- \`postal_code\`: ZIP code for localized pricing; default to \`"10001"\` if unknown.
+- \`source_scope\`: use \`"retail"\` by default. Use \`"amazon"\` only when the user asks for Amazon-only.
+
+## Payment Flow
+
+Use the agent's available HTTP payment client. If calling directly:
+
+1. POST the request.
+2. If the response is \`402 Payment Required\`, read the \`PAYMENT-REQUIRED\` header.
+3. Retry with an x402 \`PAYMENT-SIGNATURE\` header or MPP \`Authorization: Payment ...\` header.
+4. On success, preserve the \`PAYMENT-RESPONSE\` receipt header when available.
+
+Do not exceed $0.05 for this endpoint unless the user explicitly approves a higher budget.
+
+## Response Handling
+
+The response shape is:
 
 \`\`\`json
 {
@@ -372,27 +397,57 @@ Response:
   "best": {
     "source": "walmart",
     "price": 89.97,
+    "currency": "USD",
     "in_stock": true,
+    "seller": "Walmart",
     "url": "https://www.walmart.com/ip/...",
     "variant": { "color": "Sail/Lucid Green", "size": "11.5" }
   },
   "all_offers": [
-    { "source": "walmart", "price": 89.97, "in_stock": true },
-    { "source": "amazon", "price": 94.99, "in_stock": true }
+    { "source": "walmart", "price": 89.97, "in_stock": true, "url": "https://www.walmart.com/ip/..." },
+    { "source": "amazon", "price": 94.99, "in_stock": true, "url": "https://www.amazon.com/dp/..." }
   ],
   "missing_sources": ["target"],
   "checked_at": "2026-05-23T15:42:11Z"
 }
 \`\`\`
 
-\`best\` is the verified buyable offer with the lowest in-stock price. Treat \`best === null\` as "no verified offer found."
+Report the best offer first with retailer, total price if present, seller, and buy URL. Then summarize other in-stock offers if useful.
 
-## Tips
+If \`best\` is \`null\`, tell the user that no verified buyable offer was found and mention any \`missing_sources\`. If the endpoint returns an error asking for \`brand\` or \`model\`, ask one concise follow-up question.
 
-- Be specific. "Nike Killshot 2" is fine; "Nike shoes" is not.
-- For shoes, always include \`size\`. Apparel, include color + size.
-- For electronics, include storage/capacity in the model string when applicable: \`"model": "iPad Air 13\\" 256GB Wi-Fi"\`.
-- The same \`product_id\` will come back across calls for the same spec — store it if you want to compare prices over time.
+## Examples
+
+User: "Cheapest Sony WH-1000XM5 in black"
+
+Call:
+
+\`\`\`json
+{
+  "brand": "Sony",
+  "model": "WH-1000XM5",
+  "color": "black",
+  "condition": "new",
+  "postal_code": "10001",
+  "source_scope": "retail"
+}
+\`\`\`
+
+User: "Find me Nike Killshot 2 Sail/Lucid Green men's 11.5"
+
+Call:
+
+\`\`\`json
+{
+  "brand": "Nike",
+  "model": "Killshot 2",
+  "color": "Sail/Lucid Green",
+  "size": { "system": "US", "gender": "men", "value": 11.5 },
+  "condition": "new",
+  "postal_code": "10001",
+  "source_scope": "retail"
+}
+\`\`\`
 `;
 
 const LLMS_TXT = `# PricePilot
