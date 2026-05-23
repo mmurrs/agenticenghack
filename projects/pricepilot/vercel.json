@@ -1,5 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/api", "destination": "/api" },
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/((?!favicon\\.svg|index\\.html|$).*)", "destination": "/api" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

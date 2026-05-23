@@ -315,7 +315,8 @@ Both protocols are accepted on every paid endpoint. Use \`AgentCash\` for the si
 - Skill definition: /skill.md
 `;
 
-if (process.env.NODE_ENV !== "test") {
+// Only bind a port when running locally (not on Vercel)
+if (process.env.NODE_ENV !== "test" && !process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`PricePilot listening on :${PORT}`);
   });
