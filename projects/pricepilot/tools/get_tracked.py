@@ -4,7 +4,9 @@ import sys, json
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from dotenv import load_dotenv; load_dotenv()
+from dotenv import load_dotenv
+load_dotenv(Path.home() / ".hermes/.env")
+load_dotenv()
 
 from integrations.clickhouse_client import get_tracked_products
 

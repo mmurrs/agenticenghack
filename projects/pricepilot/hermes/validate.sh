@@ -23,14 +23,14 @@ echo ""
 
 # 1. check_price
 echo "--- check_price ---"
-OUT=$(python tools/check_price.py "https://www.amazon.com/dp/B09XS7JWHH" 2>&1)
+OUT=$(python3 tools/check_price.py "https://www.amazon.com/dp/B09XS7JWHH" 2>&1)
 echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); assert 'price' in d" \
   && pass "check_price returns price" \
   || fail "check_price failed: $OUT"
 
 # 2. store_price
 echo "--- store_price ---"
-OUT=$(python tools/store_price.py "u1" "B09XS7JWHH" "Test Product" \
+OUT=$(python3 tools/store_price.py "u1" "B09XS7JWHH" "Test Product" \
   "https://amazon.com/dp/B09XS7JWHH" "amazon" "99.99" 2>&1)
 echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('status')=='stored'" \
   && pass "store_price stores event" \
@@ -38,7 +38,7 @@ echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get(
 
 # 3. add_tracked
 echo "--- add_tracked ---"
-OUT=$(python tools/add_tracked.py "u1" "B09XS7JWHH" "Test Product" \
+OUT=$(python3 tools/add_tracked.py "u1" "B09XS7JWHH" "Test Product" \
   "https://amazon.com/dp/B09XS7JWHH" "89.0" 2>&1)
 echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('status')=='tracking_started'" \
   && pass "add_tracked registers product" \
@@ -46,14 +46,14 @@ echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get(
 
 # 4. get_tracked
 echo "--- get_tracked ---"
-OUT=$(python tools/get_tracked.py "u1" 2>&1)
+OUT=$(python3 tools/get_tracked.py "u1" 2>&1)
 echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); assert len(d)>0" \
   && pass "get_tracked returns tracked products" \
   || fail "get_tracked failed: $OUT"
 
 # 5. get_history
 echo "--- get_history ---"
-OUT=$(python tools/get_history.py "B09XS7JWHH" 2>&1)
+OUT=$(python3 tools/get_history.py "B09XS7JWHH" 2>&1)
 echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); assert isinstance(d,list)" \
   && pass "get_history returns list" \
   || fail "get_history failed: $OUT"
@@ -61,14 +61,14 @@ echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); assert isinst
 # 6. poll — should detect a drop (stub price 99.99 > threshold 89.0 ... wait, 99.99 > 89.0 means no drop)
 #    Lower the threshold in the stub test to force a drop detection
 echo "--- poll (no-drop case) ---"
-OUT=$(python tools/poll.py 2>&1)
+OUT=$(python3 tools/poll.py 2>&1)
 echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); assert isinstance(d,list)" \
   && pass "poll returns drop list (may be empty with stubs)" \
   || fail "poll failed: $OUT"
 
 # 7. generate_report (stub)
 echo "--- generate_report ---"
-OUT=$(python tools/generate_report.py "B09XS7JWHH" "Test Product" "79.99" "89.0" \
+OUT=$(python3 tools/generate_report.py "B09XS7JWHH" "Test Product" "79.99" "89.0" \
   "https://amazon.com/dp/B09XS7JWHH" 2>&1)
 echo "$OUT" | python3 -c "import sys,json; d=json.load(sys.stdin); assert 'report_url' in d" \
   && pass "generate_report returns URL" \
