@@ -1227,6 +1227,11 @@
       .arch-arrow { text-align: center; transform: rotate(90deg); }
       .resources-nav { display: none; }
     }
+    @media (max-width: 640px) {
+      .sec > div[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1587,6 +1592,111 @@
             <span class="what"><strong>You get one JSON response.</strong> The cheapest verified offer plus a stable <code class="inline">product_id</code>.</span>
           </li>
         </ul>
+      </section>
+
+      <section class="sec">
+        <p class="sec-h">Live retailer comparison <span class="num">[Nike Killshot 2 — verified offers]</span></p>
+        <p style="font-size: 0.6875rem; color: var(--muted); font-style: italic; margin-bottom: 1rem; line-height: 1.6;">
+          This is what your buyer sees — not abstract JSON, but real retailer cards with live prices, stock status, and the winner highlighted.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+          <!-- Amazon Card -->
+          <div style="border: 1.5px dashed var(--line-soft); background: var(--paper-deep); padding: 0.875rem; display: flex; flex-direction: column; gap: 0.625rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+              <svg class="mark-svg" viewBox="0 0 48 32" style="width: 2.5rem; height: auto;" aria-label="Amazon logo">
+                <use href="#mark-amazon"></use>
+              </svg>
+              <span style="font-size: 0.5625rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase;">Checked 2026-05-23</span>
+            </div>
+
+            <!-- Product Image — SVG Sneaker Silhouette -->
+            <div style="background: rgba(138, 129, 117, 0.08); border: 1px solid var(--line-soft); padding: 1rem; display: flex; align-items: center; justify-content: center; min-height: 120px;">
+              <svg viewBox="0 0 120 80" style="width: 100%; max-width: 90px; height: auto;" aria-label="Sneaker">
+                <path d="M10 55 L15 50 L20 48 L30 47 L40 46 L50 45 L60 44 L70 43 L80 42 L90 41 L95 40 L100 38 L105 35 L108 32 L110 28 L110 50 L105 52 L100 53 L90 54 L80 55 L70 56 L60 57 L50 58 L40 59 L30 60 L20 60 L10 58 Z M105 35 L108 30 L109 26 L108 23 L106 21 L103 20 L100 20 L97 21 L95 23 L94 26 L95 29 L97 32 L100 34 L103 35 Z" fill="rgba(26, 22, 18, 0.12)" stroke="rgba(26, 22, 18, 0.2)" stroke-width="0.5"/>
+                <ellipse cx="30" cy="60" rx="7" ry="7" fill="rgba(26, 22, 18, 0.15)" stroke="rgba(26, 22, 18, 0.25)" stroke-width="0.5"/>
+                <ellipse cx="80" cy="56" rx="7" ry="7" fill="rgba(26, 22, 18, 0.15)" stroke="rgba(26, 22, 18, 0.25)" stroke-width="0.5"/>
+              </svg>
+            </div>
+
+            <div style="border-top: 1px dashed var(--line-soft); padding-top: 0.625rem;">
+              <div style="font-size: 0.8125rem; font-weight: 600; color: var(--ink); line-height: 1.4; margin-bottom: 0.25rem;">
+                Nike Killshot 2 — Sail/Lucid Green
+              </div>
+              <div style="display: inline-block; border: 1px solid var(--line-soft); background: var(--paper); padding: 0.15rem 0.4rem; font-size: 0.5625rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 0.5rem;">
+                Men's · US 11.5
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem;">
+                <span style="width: 6px; height: 6px; background: var(--green); border-radius: 50%;"></span>
+                <span style="font-size: 0.625rem; color: var(--green); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">In stock</span>
+              </div>
+
+              <div style="font-family: 'IBM Plex Serif', Georgia, serif; font-size: 1.75rem; font-weight: 700; color: var(--muted); text-decoration: line-through; margin-bottom: 0.625rem;">
+                $94.99
+              </div>
+
+              <a href="https://www.amazon.com/dp/B07K1JDTXP" style="display: block; text-align: center; border: 1.5px solid var(--ink); background: var(--paper); color: var(--ink); font-size: 0.625rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.45rem; text-decoration: none; transition: all 0.15s;" onmouseover="this.style.background='var(--ink)'; this.style.color='var(--paper)';" onmouseout="this.style.background='var(--paper)'; this.style.color='var(--ink)';">
+                View on Amazon
+              </a>
+            </div>
+          </div>
+
+          <!-- Walmart Card -->
+          <div style="border: 2px solid var(--green); background: var(--paper-deep); padding: 0.875rem; display: flex; flex-direction: column; gap: 0.625rem; box-shadow: 3px 3px 0 rgba(45, 107, 58, 0.1);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+              <svg class="mark-svg" viewBox="0 0 32 32" style="width: 1.75rem; height: auto;" aria-label="Walmart logo">
+                <use href="#mark-walmart"></use>
+              </svg>
+              <span style="display: inline-block; background: var(--green); color: var(--paper); font-size: 0.5625rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.15rem 0.4rem; transform: rotate(-2deg);">★ CHEAPEST</span>
+            </div>
+
+            <!-- Product Image — SVG Sneaker Silhouette -->
+            <div style="background: rgba(45, 107, 58, 0.04); border: 1px solid var(--green); padding: 1rem; display: flex; align-items: center; justify-content: center; min-height: 120px;">
+              <svg viewBox="0 0 120 80" style="width: 100%; max-width: 90px; height: auto;" aria-label="Sneaker">
+                <path d="M10 55 L15 50 L20 48 L30 47 L40 46 L50 45 L60 44 L70 43 L80 42 L90 41 L95 40 L100 38 L105 35 L108 32 L110 28 L110 50 L105 52 L100 53 L90 54 L80 55 L70 56 L60 57 L50 58 L40 59 L30 60 L20 60 L10 58 Z M105 35 L108 30 L109 26 L108 23 L106 21 L103 20 L100 20 L97 21 L95 23 L94 26 L95 29 L97 32 L100 34 L103 35 Z" fill="rgba(45, 107, 58, 0.15)" stroke="rgba(45, 107, 58, 0.3)" stroke-width="0.5"/>
+                <ellipse cx="30" cy="60" rx="7" ry="7" fill="rgba(45, 107, 58, 0.18)" stroke="rgba(45, 107, 58, 0.35)" stroke-width="0.5"/>
+                <ellipse cx="80" cy="56" rx="7" ry="7" fill="rgba(45, 107, 58, 0.18)" stroke="rgba(45, 107, 58, 0.35)" stroke-width="0.5"/>
+              </svg>
+            </div>
+
+            <div style="border-top: 1px dashed var(--green); padding-top: 0.625rem;">
+              <div style="font-size: 0.8125rem; font-weight: 600; color: var(--ink); line-height: 1.4; margin-bottom: 0.25rem;">
+                Nike Killshot 2 — Sail/Lucid Green
+              </div>
+              <div style="display: inline-block; border: 1px solid var(--green); background: var(--paper); padding: 0.15rem 0.4rem; font-size: 0.5625rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 0.5rem;">
+                Men's · US 11.5
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem;">
+                <span style="width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: blink 1.6s infinite;"></span>
+                <span style="font-size: 0.625rem; color: var(--green); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">In stock</span>
+              </div>
+
+              <div style="font-family: 'IBM Plex Serif', Georgia, serif; font-size: 1.75rem; font-weight: 700; color: var(--green); margin-bottom: 0.625rem;">
+                $89.97
+              </div>
+
+              <a href="https://www.walmart.com/ip/Nike-Killshot-2/" style="display: block; text-align: center; border: 1.5px solid var(--green); background: var(--green); color: var(--paper); font-size: 0.625rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.45rem; text-decoration: none; transition: all 0.15s;" onmouseover="this.style.background='var(--paper)'; this.style.color='var(--green)';" onmouseout="this.style.background='var(--green)'; this.style.color='var(--paper)';">
+                View on Walmart
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Savings Banner -->
+        <div style="border: 1.5px dashed var(--stamp); background: rgba(197, 52, 30, 0.04); padding: 0.75rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem; font-size: 0.8125rem; font-weight: 600;">
+          <span style="font-family: 'IBM Plex Serif', Georgia, serif; color: var(--muted); text-decoration: line-through;">$94.99</span>
+          <span style="color: var(--stamp); font-size: 1rem; font-weight: 700;">&rarr;</span>
+          <span style="font-family: 'IBM Plex Serif', Georgia, serif; color: var(--green); font-size: 1.125rem; font-weight: 700;">$89.97</span>
+          <span style="border-left: 1px solid var(--line-soft); padding-left: 0.75rem; color: var(--ink-soft); font-size: 0.75rem; font-style: italic;">
+            You save <strong style="color: var(--green);">$5.02</strong> by going with Walmart
+          </span>
+        </div>
+
+        <p style="font-size: 0.625rem; color: var(--muted); text-align: center; margin-top: 0.5rem; font-style: italic;">
+          Powered by PricePilot · Checked 2026-05-23 15:42 UTC
+        </p>
       </section>
 
       <section class="sec">
