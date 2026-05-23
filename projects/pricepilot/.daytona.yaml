@@ -1,0 +1,8 @@
+name: pricepilot
+image: python:3.11-slim
+ports:
+  - 8080
+env:
+  - PYTHONPATH=/workspaces/agenticenghackNYC2026/projects/pricepilot
+postCreate: pip install -r projects/pricepilot/requirements.txt
+run: cd projects/pricepilot && python main.py

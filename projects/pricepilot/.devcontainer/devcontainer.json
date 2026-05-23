@@ -1,0 +1,19 @@
+{
+  "name": "PricePilot",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "postCreateCommand": "pip install -r requirements.txt",
+  "containerEnv": {
+    "PYTHONPATH": "/workspaces/agenticenghackNYC2026/projects/pricepilot"
+  },
+  "forwardPorts": [8080],
+  "remoteEnv": {
+    "OPENAI_API_KEY": "${localEnv:OPENAI_API_KEY}",
+    "OPENAI_BASE_URL": "${localEnv:OPENAI_BASE_URL}",
+    "OPENAI_MODEL": "${localEnv:OPENAI_MODEL}",
+    "TELEGRAM_BOT_TOKEN": "${localEnv:TELEGRAM_BOT_TOKEN}",
+    "NIMBLE_API_KEY": "${localEnv:NIMBLE_API_KEY}",
+    "CLICKHOUSE_HOST": "${localEnv:CLICKHOUSE_HOST}",
+    "CLICKHOUSE_PASSWORD": "${localEnv:CLICKHOUSE_PASSWORD}",
+    "SENSO_API_KEY": "${localEnv:SENSO_API_KEY}"
+  }
+}
