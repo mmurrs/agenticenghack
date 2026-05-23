@@ -17,6 +17,8 @@ const USDC_BY_NETWORK = {
   "eip155:1": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // Ethereum
 };
 
+const FACILITATOR_TIMEOUT_MS = 30_000;
+
 // ── Create dual handler ─────────────────────────────────────────────────
 
 /**
@@ -53,56 +55,99 @@ export function createDual402(config) {
      * Returns Express middleware that gates a route behind payment.
      * Accepts both x402 (PAYMENT-SIGNATURE) and MPP (Authorization: Payment).
      *
-     * @param {object} opts - { amount: string, description?: string }
+     * @param {object} opts - { amount: string, description?: string, discovery?: { info, schema } }
+     *   discovery: optional CDP Bazaar `extensions.bazaar` block. Provide
+     *     `{ info, schema }` and dual402 will surface it in the 402 challenge
+     *     so x402scan, Bazaar, and agentic.market index a typed listing
+     *     instead of a probe-only fallback entry.
      */
     charge(opts) {
-      const { amount, description } = opts;
+      const { amount, description, discovery } = opts;
 
       // MPP charge handler — used for both credential verification and challenge generation
       const mppCharge = mppx.charge({ amount, description });
 
       // x402 amount in smallest unit (USDC = 6 decimals)
-      const amountRaw = Math.round(parseFloat(amount) * 1e6).toString();
+      const amountRaw = amountToAtomic(amount);
 
       // Stash amount for discovery to read
       const handler = async (req, res, next) => {
         try {
+          const baseUrl =
+            process.env.BASE_URL || `${req.protocol}://${req.get("host")}`;
+          const resourceUrl = `${baseUrl}${req.originalUrl}`;
+          const paymentRequirements = buildX402PaymentRequirements({
+            amountRaw,
+            asset: x402Asset,
+            config: config.x402,
+          });
+          const paymentRequired = buildX402PaymentRequired({
+            description,
+            paymentRequirements,
+            resourceUrl,
+            discovery,
+          });
+
           // ── Path 1: x402 credential ──
           // v2 header: PAYMENT-SIGNATURE, v1 legacy: X-PAYMENT
           const x402Sig =
             req.headers["payment-signature"] ?? req.headers["x-payment"];
 
           if (x402Sig) {
-            const verified = await x402Verify(
-              x402Sig,
-              config.x402.facilitatorUrl,
-              { amount: amountRaw, payTo: config.x402.payTo }
-            );
-            if (verified.valid) {
+            let paymentPayload;
+            try {
+              paymentPayload = decodePaymentPayload(x402Sig);
+            } catch (err) {
+              console.warn(`[dual402] invalid x402 payload: ${err.message}`);
+            }
+
+            const verified = paymentPayload
+              ? await x402Verify(
+                  paymentPayload,
+                  config.x402.facilitatorUrl,
+                  paymentRequirements
+                )
+              : { isValid: false, invalidReason: "invalid_payload" };
+
+            if (verified.isValid || verified.valid) {
               console.log(`[PAY] x402 verified amount=${amount} network=${config.x402.network}`);
-              // Settle async — don't block the response
-              x402Settle(x402Sig, config.x402.facilitatorUrl)
-                .then(() => console.log(`[PAY] x402 settled amount=${amount}`))
-                .catch((err) =>
-                  console.error("[PAY] x402 settle error:", err.message)
+              let settlement;
+              try {
+                settlement = await x402Settle(
+                  paymentPayload,
+                  config.x402.facilitatorUrl,
+                  paymentRequirements
                 );
-              // Attach receipt header if we got a tx hash back
-              if (verified.txHash) {
-                res.setHeader(
-                  "PAYMENT-RESPONSE",
-                  Buffer.from(
-                    JSON.stringify({
-                      success: true,
-                      txHash: verified.txHash,
-                      network: config.x402.network,
-                    })
-                  ).toString("base64")
-                );
+              } catch (err) {
+                console.warn(`[dual402] x402 settlement failed: ${err.message}`);
+                settlement = {
+                  success: false,
+                  errorReason: "settlement_error",
+                  errorMessage: err.message,
+                };
               }
+              res.setHeader(
+                "PAYMENT-RESPONSE",
+                Buffer.from(JSON.stringify(settlement)).toString("base64")
+              );
+              if (settlement.success === false) {
+                res.setHeader(
+                  "PAYMENT-REQUIRED",
+                  Buffer.from(JSON.stringify(paymentRequired)).toString("base64")
+                );
+                return res.status(402).json({
+                  error: "payment_settlement_failed",
+                  reason: settlement.errorReason,
+                  message: settlement.errorMessage,
+                });
+              }
+              console.log(`[PAY] x402 settled amount=${amount}`);
               return next();
             }
             // Invalid x402 credential — fall through to 402
-            console.warn("[dual402] x402 verification failed");
+            console.warn(
+              `[dual402] x402 verification failed: ${verified.invalidReason ?? verified.reason ?? "unknown"}`
+            );
           }
 
           // ── Path 2 & 3: Delegate to mppx, inject x402 header on 402 ──
@@ -111,33 +156,6 @@ export function createDual402(config) {
           // x402 PAYMENT-REQUIRED header before the response is sent.
           // This way mppx handles both MPP credentials and challenge
           // generation, and we just layer x402 on top of the 402.
-
-          const baseUrl =
-            process.env.BASE_URL || `${req.protocol}://${req.get("host")}`;
-          const resourceUrl = `${baseUrl}${req.originalUrl}`;
-          const paymentRequired = {
-            x402Version: 2,
-            accepts: [
-              {
-                scheme: "exact",
-                network: config.x402.network,
-                amount: amountRaw,
-                asset: x402Asset,
-                payTo: config.x402.payTo,
-                maxTimeoutSeconds: 300,
-                extra: {
-                  name: "USDC",
-                  version: "2",
-                  resourceUrl,
-                },
-              },
-            ],
-            resource: {
-              url: resourceUrl,
-              description: description || "",
-              mimeType: "application/json",
-            },
-          };
 
           // Intercept: when mppx sets status 402, also add x402 header
           const origStatus = res.status.bind(res);
@@ -168,66 +186,146 @@ export function createDual402(config) {
 
 // ── x402 facilitator HTTP calls ─────────────────────────────────────────
 
-async function x402Verify(paymentSignature, facilitatorUrl, expected) {
-  try {
-    const payload = JSON.parse(
-      Buffer.from(paymentSignature, "base64").toString("utf-8")
-    );
+function amountToAtomic(amount) {
+  const parsed = Number(amount);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`Invalid payment amount "${amount}"`);
+  }
+  return Math.round(parsed * 1e6).toString();
+}
 
-    // Validate amount and payee before even hitting the facilitator
-    if (expected) {
-      const paymentAmount = payload.amount ?? payload.value;
-      if (
-        paymentAmount !== undefined &&
-        expected.amount !== undefined &&
-        String(paymentAmount) !== String(expected.amount)
-      ) {
-        console.warn(
-          `[dual402] x402 amount mismatch: got ${paymentAmount}, expected ${expected.amount}`
-        );
-        return { valid: false, reason: "amount_mismatch" };
-      }
-      const paymentPayee = (payload.payTo ?? payload.to ?? "").toLowerCase();
-      if (
-        paymentPayee &&
-        expected.payTo &&
-        paymentPayee !== expected.payTo.toLowerCase()
-      ) {
-        console.warn(
-          `[dual402] x402 payee mismatch: got ${paymentPayee}, expected ${expected.payTo}`
-        );
-        return { valid: false, reason: "payee_mismatch" };
-      }
+function buildX402PaymentRequirements({ amountRaw, asset, config }) {
+  if (!config.payTo) {
+    throw new Error("X402_PAYEE_ADDRESS or RECIPIENT_WALLET is required");
+  }
+  return {
+    scheme: "exact",
+    network: config.network,
+    amount: amountRaw,
+    asset,
+    payTo: config.payTo,
+    maxTimeoutSeconds: 300,
+    extra: {
+      name: "USDC",
+      version: "2",
+    },
+  };
+}
+
+function buildX402PaymentRequired({
+  description,
+  paymentRequirements,
+  resourceUrl,
+  discovery,
+}) {
+  const payload = {
+    x402Version: 2,
+    accepts: [
+      {
+        ...paymentRequirements,
+        extra: {
+          ...paymentRequirements.extra,
+          resourceUrl,
+        },
+      },
+    ],
+    resource: {
+      url: resourceUrl,
+      description: description || "",
+      mimeType: "application/json",
+    },
+  };
+
+  if (discovery && discovery.info && discovery.schema) {
+    payload.extensions = {
+      bazaar: {
+        info: discovery.info,
+        schema: discovery.schema,
+      },
+    };
+  }
+
+  return payload;
+}
+
+function decodePaymentPayload(paymentSignature) {
+  return JSON.parse(Buffer.from(paymentSignature, "base64").toString("utf-8"));
+}
+
+function validateX402Payload(paymentPayload, paymentRequirements) {
+  const accepted = paymentPayload.accepted ?? {};
+  const paymentAmount = accepted.amount ?? paymentPayload.amount ?? paymentPayload.value;
+  if (
+    paymentAmount !== undefined &&
+    String(paymentAmount) !== String(paymentRequirements.amount)
+  ) {
+    console.warn(
+      `[dual402] x402 amount mismatch: got ${paymentAmount}, expected ${paymentRequirements.amount}`
+    );
+    return { isValid: false, invalidReason: "amount_mismatch" };
+  }
+
+  const paymentPayee = (accepted.payTo ?? paymentPayload.payTo ?? paymentPayload.to ?? "").toLowerCase();
+  if (
+    paymentPayee &&
+    paymentPayee !== paymentRequirements.payTo.toLowerCase()
+  ) {
+    console.warn(
+      `[dual402] x402 payee mismatch: got ${paymentPayee}, expected ${paymentRequirements.payTo}`
+    );
+    return { isValid: false, invalidReason: "payee_mismatch" };
+  }
+
+  const paymentNetwork = accepted.network ?? paymentPayload.network;
+  if (paymentNetwork && paymentNetwork !== paymentRequirements.network) {
+    console.warn(
+      `[dual402] x402 network mismatch: got ${paymentNetwork}, expected ${paymentRequirements.network}`
+    );
+    return { isValid: false, invalidReason: "network_mismatch" };
+  }
+
+  const paymentAsset = (accepted.asset ?? paymentPayload.asset ?? "").toLowerCase();
+  if (paymentAsset && paymentAsset !== paymentRequirements.asset.toLowerCase()) {
+    console.warn(
+      `[dual402] x402 asset mismatch: got ${paymentAsset}, expected ${paymentRequirements.asset}`
+    );
+    return { isValid: false, invalidReason: "asset_mismatch" };
+  }
+
+  return null;
+}
+
+async function x402Verify(paymentPayload, facilitatorUrl, paymentRequirements) {
+  try {
+    const localInvalid = validateX402Payload(paymentPayload, paymentRequirements);
+    if (localInvalid) {
+      return localInvalid;
     }
 
-    const res = await fetch(`${facilitatorUrl}/verify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ payload }),
+    const res = await facilitatorFetch(facilitatorUrl, "verify", {
+      x402Version: 2,
+      paymentPayload,
+      paymentRequirements,
     });
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       console.warn(`[dual402] facilitator /verify ${res.status}: ${text}`);
-      return { valid: false };
+      return { isValid: false, invalidReason: "facilitator_error" };
     }
 
     return await res.json();
   } catch (err) {
     console.error("[dual402] x402 verify error:", err.message);
-    return { valid: false };
+    return { isValid: false, invalidReason: "verify_error" };
   }
 }
 
-async function x402Settle(paymentSignature, facilitatorUrl) {
-  const payload = JSON.parse(
-    Buffer.from(paymentSignature, "base64").toString("utf-8")
-  );
-
-  const res = await fetch(`${facilitatorUrl}/settle`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ payload }),
+async function x402Settle(paymentPayload, facilitatorUrl, paymentRequirements) {
+  const res = await facilitatorFetch(facilitatorUrl, "settle", {
+    x402Version: 2,
+    paymentPayload,
+    paymentRequirements,
   });
 
   if (!res.ok) {
@@ -236,6 +334,29 @@ async function x402Settle(paymentSignature, facilitatorUrl) {
   }
 
   return res.json();
+}
+
+async function facilitatorFetch(facilitatorUrl, path, body) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FACILITATOR_TIMEOUT_MS);
+  try {
+    return await fetch(`${facilitatorUrl.replace(/\/+$/, "")}/${path}`, {
+      method: "POST",
+      headers: facilitatorHeaders(),
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function facilitatorHeaders() {
+  const headers = { "Content-Type": "application/json" };
+  if (process.env.X402_FACILITATOR_BEARER_TOKEN) {
+    headers.Authorization = `Bearer ${process.env.X402_FACILITATOR_BEARER_TOKEN}`;
+  }
+  return headers;
 }
 
 // ── Discovery (mounts /openapi.json and /.well-known/x402) ─────────────
@@ -291,6 +412,9 @@ export function dualDiscovery(app, dual, config) {
     // Input schema — query parameters for GET routes
     if (r.parameters?.length) {
       operation.parameters = r.parameters;
+    }
+    if (r.requestBody) {
+      operation.requestBody = r.requestBody;
     }
 
     paths[r.path] = { [r.method]: operation };

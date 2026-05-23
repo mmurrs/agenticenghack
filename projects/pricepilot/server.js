@@ -57,9 +57,118 @@ const dual = createDual402({
   },
 });
 
+// CDP Bazaar / x402scan / agentic.market discovery block.
+// Surfaced inside the 402 PaymentRequired payload as
+// `extensions.bazaar.{info, schema}` so registries index a typed listing
+// instead of a probe-only fallback. See docs.cdp.coinbase.com/x402/bazaar.
+const findCheapestDiscovery = {
+  info: {
+    type: "http",
+    method: "POST",
+    bodyType: "json",
+    input: {
+      body: {
+        brand: "Nike",
+        model: "Killshot 2",
+        color: "Sail/Lucid Green",
+        size: { system: "US", gender: "men", value: 11.5 },
+        condition: "new",
+        postal_code: "10001",
+      },
+    },
+    output: {
+      type: "json",
+      example: {
+        product_id: "nike-killshot-2",
+        best: {
+          source: "walmart",
+          price: 89.97,
+          currency: "USD",
+          in_stock: true,
+          url: "https://www.walmart.com/ip/...",
+        },
+        all_offers: [
+          { source: "walmart", price: 89.97, in_stock: true },
+          { source: "amazon", price: 94.99, in_stock: true },
+        ],
+        missing_sources: ["target"],
+        checked_at: "2026-05-23T15:42:11Z",
+      },
+    },
+  },
+  schema: {
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    type: "object",
+    properties: {
+      input: {
+        type: "object",
+        properties: {
+          type: { const: "http" },
+          method: { enum: ["POST"] },
+          bodyType: { enum: ["json"] },
+          body: {
+            type: "object",
+            properties: {
+              brand: {
+                type: "string",
+                description: "Product brand, e.g. 'Nike', 'Sony', 'LEGO'.",
+              },
+              model: {
+                type: "string",
+                description:
+                  "Specific model, e.g. 'Killshot 2', 'WH-1000XM5', '10497 Galaxy Explorer'.",
+              },
+              color: {
+                type: "string",
+                description: "Color or colorway when relevant.",
+              },
+              size: {
+                type: "object",
+                description: "Size spec for apparel/footwear.",
+                properties: {
+                  system: { type: "string", enum: ["US", "EU", "UK"] },
+                  gender: {
+                    type: "string",
+                    enum: ["men", "women", "kids", "unisex"],
+                  },
+                  value: { type: "number" },
+                },
+              },
+              condition: {
+                type: "string",
+                enum: ["new", "used", "ds", "any"],
+                default: "new",
+              },
+              postal_code: {
+                type: "string",
+                description: "ZIP code for retailer pricing localization.",
+                default: "10001",
+              },
+              source_scope: {
+                type: "string",
+                enum: ["amazon", "retail", "all"],
+                default: "retail",
+              },
+            },
+            required: ["brand", "model"],
+          },
+        },
+        required: ["type", "method", "bodyType", "body"],
+      },
+      output: {
+        type: "object",
+        properties: { type: { type: "string" } },
+        required: ["type"],
+      },
+    },
+    required: ["input"],
+  },
+};
+
 const chargeFindCheapest = dual.charge({
   amount: "0.05",
   description: "Cheapest verified product offer across Amazon and Walmart",
+  discovery: findCheapestDiscovery,
 });
 
 const findCheapestParams = {
