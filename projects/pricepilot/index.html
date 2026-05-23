@@ -378,6 +378,164 @@
       margin-bottom: 0.15rem;
     }
 
+    .summary-retailer-flow {
+      margin-top: 0.75rem;
+      padding: 0.75rem;
+      border: 1px dashed var(--line-soft);
+      background: var(--paper-deep);
+      border-radius: 6px;
+    }
+    .retailer-flow-label {
+      font-size: 0.625rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.65rem;
+      text-align: center;
+    }
+    .retailer-flow-track {
+      display: grid;
+      grid-template-columns: auto auto 1fr auto auto;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .retailer-flow-hub {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .hub-label {
+      font-size: 0.5625rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+    .retailer-flow-arrows {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      justify-content: center;
+      min-width: 2rem;
+    }
+    .flow-line {
+      display: block;
+      height: 1px;
+      background: repeating-linear-gradient(
+        to right,
+        var(--stamp) 0,
+        var(--stamp) 4px,
+        transparent 4px,
+        transparent 8px
+      );
+      position: relative;
+    }
+    .flow-line::after {
+      content: '→';
+      position: absolute;
+      right: -0.35rem;
+      top: -0.45rem;
+      color: var(--stamp);
+      font-weight: 700;
+      font-size: 0.75rem;
+    }
+    .flow-line.return::after {
+      content: '→';
+      right: auto;
+      left: -0.35rem;
+    }
+    .retailer-flow-targets {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .retailer-flow-card {
+      border: 1px solid var(--line-soft);
+      background: var(--paper);
+      padding: 0.4rem 0.5rem;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 0.4rem;
+      align-items: center;
+      border-radius: 4px;
+    }
+    .retailer-name {
+      font-size: 0.625rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+    .retailer-status {
+      font-size: 0.5625rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+    .retailer-status.live {
+      color: var(--green);
+      font-weight: 700;
+    }
+    .retailer-flow-result {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.4rem;
+      border: 1px solid var(--green);
+      background: var(--paper);
+      border-radius: 4px;
+    }
+    .result-label {
+      font-size: 0.5625rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--green);
+      text-align: center;
+    }
+    .logo-mark.verify {
+      background: var(--paper);
+      color: var(--green);
+      border-color: var(--green);
+    }
+
+    .summary-built-with {
+      margin-top: 0.75rem;
+      padding-top: 0.65rem;
+      border-top: 1px solid var(--line-soft);
+    }
+    .built-label {
+      font-size: 0.5625rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    .built-logos {
+      display: flex;
+      justify-content: center;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+    }
+    .built-logo-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.4rem;
+    }
+    .built-name {
+      font-size: 0.5625rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--ink-soft);
+    }
+
     .plugin-manifest {
       border: 1.5px solid var(--ink);
       background: var(--paper-deep);
@@ -779,6 +937,15 @@
       text-transform: uppercase;
       color: var(--muted);
       margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+    .fanout-hint {
+      font-size: 0.875rem;
+      color: var(--stamp);
+      font-weight: 700;
     }
     .fanout-grid {
       display: grid;
@@ -815,6 +982,29 @@
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.1em;
+    }
+    .retailer-logo .status.live {
+      color: var(--green);
+      font-weight: 700;
+    }
+    .fanout-return-flow {
+      margin-top: 0.6rem;
+      padding-top: 0.6rem;
+      border-top: 1px dashed var(--line-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+    .return-arrow {
+      font-size: 1rem;
+      color: var(--green);
+      font-weight: 700;
+    }
+    .return-label {
+      font-size: 0.625rem;
+      color: var(--ink-soft);
+      font-style: italic;
     }
     .receipt-json {
       margin-top: 0.75rem;
@@ -1152,6 +1342,39 @@
               </div>
             </div>
           </div>
+          <div class="summary-retailer-flow" aria-label="PricePilot retailer resolution">
+            <div class="retailer-flow-label">Under the hood — PricePilot resolves in parallel</div>
+            <div class="retailer-flow-track">
+              <div class="retailer-flow-hub">
+                <span class="logo-mark pricepilot"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-pricepilot"></use></svg></span>
+                <span class="hub-label">PricePilot</span>
+              </div>
+              <div class="retailer-flow-arrows" aria-hidden="true">
+                <span class="flow-line"></span>
+                <span class="flow-line"></span>
+              </div>
+              <div class="retailer-flow-targets">
+                <div class="retailer-flow-card">
+                  <span class="logo-mark amazon wide"><svg class="mark-svg" viewBox="0 0 48 32" aria-hidden="true" focusable="false"><use href="#mark-amazon"></use></svg></span>
+                  <span class="retailer-name">Amazon</span>
+                  <span class="retailer-status live">live</span>
+                </div>
+                <div class="retailer-flow-card">
+                  <span class="logo-mark walmart"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-walmart"></use></svg></span>
+                  <span class="retailer-name">Walmart</span>
+                  <span class="retailer-status live">live</span>
+                </div>
+              </div>
+              <div class="retailer-flow-arrows" aria-hidden="true">
+                <span class="flow-line return"></span>
+                <span class="flow-line return"></span>
+              </div>
+              <div class="retailer-flow-result">
+                <span class="logo-mark verify"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-verify"></use></svg></span>
+                <span class="result-label">Verified cheapest</span>
+              </div>
+            </div>
+          </div>
           <div class="summary-facts">
             <div class="summary-fact">
               <strong>Buyer input</strong>
@@ -1164,6 +1387,23 @@
             <div class="summary-fact">
               <strong>Agent output</strong>
               Best offer, all offers, missing sources, product_id, and observation IDs.
+            </div>
+          </div>
+          <div class="summary-built-with" aria-label="Technology partners">
+            <div class="built-label">Built with</div>
+            <div class="built-logos">
+              <div class="built-logo-card">
+                <span class="logo-mark nimble"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-nimble"></use></svg></span>
+                <span class="built-name">Nimble</span>
+              </div>
+              <div class="built-logo-card">
+                <span class="logo-mark clickhouse"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-clickhouse"></use></svg></span>
+                <span class="built-name">ClickHouse</span>
+              </div>
+              <div class="built-logo-card">
+                <span class="logo-mark senso"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-senso"></use></svg></span>
+                <span class="built-name">Senso</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1212,17 +1452,20 @@
             </div>
           </div>
           <div class="fanout-panel">
-            <div class="fanout-label">Retailers Hermes can compare</div>
+            <div class="fanout-label">
+              <span>Retailers Hermes can compare</span>
+              <span class="fanout-hint" aria-hidden="true">⤵</span>
+            </div>
             <div class="fanout-grid">
               <div class="retailer-logo">
                 <span class="logo-mark amazon wide"><svg class="mark-svg" viewBox="0 0 48 32" aria-hidden="true" focusable="false"><use href="#mark-amazon"></use></svg></span>
                 <span class="brand-word">Amazon</span>
-                <span class="status">live</span>
+                <span class="status live">live</span>
               </div>
               <div class="retailer-logo">
                 <span class="logo-mark walmart"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-walmart"></use></svg></span>
                 <span class="brand-word">Walmart</span>
-                <span class="status">live</span>
+                <span class="status live">live</span>
               </div>
               <div class="retailer-logo next">
                 <span class="logo-mark target"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-target"></use></svg></span>
@@ -1239,6 +1482,10 @@
                 <span class="brand-word">Facebook</span>
                 <span class="status">next</span>
               </div>
+            </div>
+            <div class="fanout-return-flow" aria-hidden="true">
+              <span class="return-arrow">↑</span>
+              <span class="return-label">All offers returned with verified cheapest</span>
             </div>
           </div>
         </div>
