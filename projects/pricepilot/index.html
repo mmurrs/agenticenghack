@@ -1538,14 +1538,14 @@
           </div>
           <div class="receipt-json"><strong>Back to Hermes:</strong> best offer, all offers, missing sources, product_id, and observation IDs flow back to Telegram as the receipt.</div>
         </div>
-        <div style="margin-top: 1rem; padding: 0.75rem; background: var(--paper-deep); border: 1px dashed var(--line-soft); border-radius: 4px; font-size: 0.8125rem; color: var(--ink-soft); font-style: italic;">
-          <span style="font-style: normal; font-weight: 700; color: var(--stamp); margin-right: 0.375rem;">psst—</span>Every price you get was checked <em>just for you</em>. No stale SERP guesses. Just the real buyable price, fresh off the shelf.
+        <div style="margin-top: 1rem; padding: 0.75rem 0.875rem; background: rgba(45, 107, 58, 0.06); border-left: 3px solid var(--green); font-size: 0.8125rem; color: var(--ink-soft); line-height: 1.6;">
+          <span style="font-style: normal; font-weight: 700; color: var(--green); margin-right: 0.375rem;">psst—</span><span style="font-style: italic;">Every price you get was checked <em>just for you</em>. No stale SERP guesses. Just the real buyable price, fresh off the shelf.</span>
         </div>
       </section>
 
       <section class="sec">
         <p class="sec-h">How Hermes uses it <span class="num">[agent flow]</span></p>
-        <p class="body-copy">The demo story is not an endpoint in isolation. Hermes is the Telegram shopping agent; PricePilot is the paid plugin Hermes calls when it needs grounded market data.</p>
+        <p class="body-copy">Here's the step-by-step from a shopper's first text to the final verified receipt.</p>
         <div class="flow-diagram">
           <div class="flow-step">
             <span class="mark">01</span>
@@ -1579,118 +1579,10 @@
       </section>
 
       <section class="sec">
-        <p class="sec-h">Architecture <span class="num">[live path]</span></p>
-        <p class="body-copy">The complete vision is an agent commerce loop: Hermes handles reasoning and user interaction, PricePilot handles paid market data, and ClickHouse keeps the price memory for history, alerts, and reports.</p>
-        <div class="arch-diagram" aria-label="PricePilot architecture diagram">
-          <div class="arch-kicker">
-            <span>Request to receipt architecture</span>
-            <span class="arch-dots" aria-hidden="true"><span class="arch-dot live"></span><span class="arch-dot pay"></span><span class="arch-dot"></span></span>
-          </div>
-          <div class="logo-track compact">
-            <div class="logo-card">
-              <span class="logo-mark telegram"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-telegram"></use></svg></span>
-              <span class="logo-copy">
-                <span class="node-h">Telegram</span>
-                <span class="node-p">chat surface for shoppers</span>
-              </span>
-            </div>
-            <span class="arch-arrow">&rarr;</span>
-            <div class="logo-card dark">
-              <span class="logo-mark hermes"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-hermes"></use></svg></span>
-              <span class="logo-copy">
-                <span class="node-h">Hermes Agent</span>
-                <span class="node-p">fills the product spec</span>
-              </span>
-            </div>
-            <span class="arch-arrow">&rarr;</span>
-            <div class="logo-card">
-              <span class="logo-mark pricepilot"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-pricepilot"></use></svg></span>
-              <span class="logo-copy">
-                <span class="node-h">PricePilot</span>
-                <span class="node-p">find_cheapest_product</span>
-              </span>
-            </div>
-            <span class="arch-arrow">&rarr;</span>
-            <div class="logo-card">
-              <span class="logo-mark payment"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-payment"></use></svg></span>
-              <span class="logo-copy">
-                <span class="node-h">x402 / MPP</span>
-                <span class="node-p">$0.05 paid unlock</span>
-              </span>
-            </div>
-          </div>
-          <div class="fanout-panel">
-            <div class="fanout-label">Nimble retailer fan-out</div>
-            <div class="fanout-grid">
-              <div class="retailer-logo">
-                <span class="logo-mark amazon wide"><svg class="mark-svg" viewBox="0 0 48 32" aria-hidden="true" focusable="false"><use href="#mark-amazon"></use></svg></span>
-                <span class="brand-word">Amazon</span>
-                <span class="status">live</span>
-              </div>
-              <div class="retailer-logo">
-                <span class="logo-mark walmart"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-walmart"></use></svg></span>
-                <span class="brand-word">Walmart</span>
-                <span class="status">live</span>
-              </div>
-              <div class="retailer-logo next">
-                <span class="logo-mark target"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-target"></use></svg></span>
-                <span class="brand-word">Target</span>
-                <span class="status">next</span>
-              </div>
-              <div class="retailer-logo next">
-                <span class="logo-mark ebay wide"><svg class="mark-svg" viewBox="0 0 48 32" aria-hidden="true" focusable="false"><use href="#mark-ebay"></use></svg></span>
-                <span class="brand-word">eBay</span>
-                <span class="status">next</span>
-              </div>
-              <div class="retailer-logo next">
-                <span class="logo-mark facebook"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-facebook"></use></svg></span>
-                <span class="brand-word">Facebook</span>
-                <span class="status">next</span>
-              </div>
-            </div>
-          </div>
-          <div class="logo-track compact">
-            <div class="logo-card">
-              <span class="logo-mark nimble"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-nimble"></use></svg></span>
-              <span class="logo-copy">
-                <span class="node-h">Nimble</span>
-                <span class="node-p">PDP + variant data</span>
-              </span>
-            </div>
-            <span class="arch-arrow">&rarr;</span>
-            <div class="logo-card">
-              <span class="logo-mark pricepilot"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-verify"></use></svg></span>
-              <span class="logo-copy">
-                <span class="node-h">Verify + Rank</span>
-                <span class="node-p">reject near misses</span>
-              </span>
-            </div>
-            <span class="arch-arrow">&rarr;</span>
-            <div class="logo-card">
-              <span class="logo-mark clickhouse"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-clickhouse"></use></svg></span>
-              <span class="logo-copy">
-                <span class="node-h">ClickHouse</span>
-                <span class="node-p">price_events memory</span>
-              </span>
-            </div>
-            <span class="arch-arrow">&rarr;</span>
-            <div class="logo-card dark">
-              <span class="logo-mark senso"><svg class="mark-svg" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="#mark-senso"></use></svg></span>
-              <span class="logo-copy">
-                <span class="node-h">Senso Reports</span>
-                <span class="node-p">history + cited proof</span>
-              </span>
-            </div>
-          </div>
-          <div class="receipt-json"><strong>Receipt JSON:</strong> best offer, all offers, missing sources, product_id, and observation IDs return to Hermes for the final Telegram answer.</div>
-        </div>
-      </section>
-
-      <section class="sec">
         <p class="sec-h">Paid service endpoint <span class="num">[powered by x402 / MPP]</span></p>
-        <div style="margin-bottom: 0.875rem; font-size: 0.6875rem; color: var(--ink-soft); display: flex; align-items: center; gap: 0.5rem;">
+        <div style="margin-bottom: 0.875rem; font-size: 0.75rem; color: var(--ink-soft); display: flex; align-items: center; gap: 0.5rem;">
           <span style="display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: blink 1.6s infinite;"></span>
-          Live now — checking Amazon &amp; Walmart every request
+          <span style="font-style: italic;">Live now — checking Amazon &amp; Walmart every request</span>
         </div>
         <div class="endpoint-card">
           <div class="corner tl"></div>
@@ -1785,8 +1677,8 @@
             <span class="leader"></span>
             <span class="val">$89.97</span>
           </div>
-          <div style="padding-top: 0.375rem; margin-top: 0.375rem; border-top: 1px dashed var(--line-soft); font-size: 0.6875rem; color: var(--green); font-weight: 600; text-align: right;">
-            YOU SAVED: <span style="text-decoration: line-through; color: var(--muted); font-weight: 400; margin-left: 0.5rem;">$119.00</span> <span style="margin-left: 0.25rem;">→ $29.03</span>
+          <div style="padding-top: 0.475rem; margin-top: 0.475rem; border-top: 1px dashed var(--line-soft); font-size: 0.6875rem; color: var(--green); font-weight: 700; text-align: right; letter-spacing: 0.08em;">
+            YOU SAVED: <span style="text-decoration: line-through; color: var(--muted); font-weight: 400; margin-left: 0.5rem; letter-spacing: 0;">$119.00</span> <span style="margin-left: 0.25rem; font-weight: 700; letter-spacing: 0;">→ $29.03</span>
           </div>
         </div>
 
@@ -1889,10 +1781,6 @@ await fetch('https://pricepilot-sepia.vercel.app/find_cheapest', {
           <li><span class="file-tag">MPP</span><a href="https://mppscan.com">mppscan.com</a></li>
         </ul>
       </section>
-
-      <div class="sponsors-rec">
-        Built with <strong>Nimble</strong> &middot; <strong>ClickHouse</strong> &middot; <strong>Senso.ai</strong>
-      </div>
 
       <div style="text-align: center; padding: 1.25rem; border-top: 1px dashed var(--line); font-size: 0.6875rem; color: var(--ink-soft);">
         <div style="font-family: 'IBM Plex Serif', Georgia, serif; font-style: italic; font-size: 0.875rem; color: var(--ink); margin-bottom: 0.5rem;">
