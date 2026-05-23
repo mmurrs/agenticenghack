@@ -1892,7 +1892,12 @@ async def _google_flights_offer(spec: FlightSpec) -> Optional[Offer]:
     return await _nimble_flight_offer(
         source="google_flights",
         agent_name="google_flights_search",
-        url=_google_flights_url(spec),
+        params={
+            "origin": spec.origin,
+            "destination": spec.destination,
+            "date": spec.depart_date,
+        },
+        fallback_url=_google_flights_url(spec),
     )
 
 
@@ -1905,7 +1910,8 @@ async def _kayak_flight_offer(spec: FlightSpec) -> Optional[Offer]:
     return await _nimble_flight_offer(
         source="kayak",
         agent_name="kayak_search",
-        url=_kayak_url(spec),
+        params={"url": _kayak_url(spec)},
+        fallback_url=_kayak_url(spec),
     )
 
 
@@ -1913,15 +1919,22 @@ async def _nimble_flight_offer(
     *,
     source: Source,
     agent_name: str,
-    url: str,
+    params: dict[str, Any],
+    fallback_url: str,
 ) -> Optional[Offer]:
     resp = await _nimble_agent_run(
         agent_name,
-        params={"url": url},
+        params=params,
         formats=["html"],
     )
     data = _nimble_data(resp)
-    raw_results = data.get("results") if isinstance(data, dict) else None
+    raw_results: Any = None
+    if isinstance(data, dict):
+        parsing = data.get("parsing")
+        if isinstance(parsing, dict):
+            raw_results = parsing.get("results")
+        if not isinstance(raw_results, list):
+            raw_results = data.get("results")
     if not isinstance(raw_results, list) or not raw_results:
         return None
 
@@ -1943,7 +1956,7 @@ async def _nimble_flight_offer(
     total, entry = best
     price = _to_float(entry.get("price")) or 0.0
     fees = _to_float(entry.get("taxes_and_fees")) or 0.0
-    deep_link = str(entry.get("deep_link") or url)
+    deep_link = str(entry.get("deep_link") or fallback_url)
     airline = str(entry.get("airline") or "").strip()
     flight_no = str(entry.get("flight_number") or "").strip()
     stops = entry.get("stops")
