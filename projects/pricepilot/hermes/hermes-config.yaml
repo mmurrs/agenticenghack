@@ -7,7 +7,7 @@
 model:
   provider: custom          # custom = use base_url below, not openrouter
   model: qwen35-35b
-  base_url: https://spark-2bc4.tail3a01e2.ts.net/v1
+  base_url: OPENAI_BASE_URL_PLACEHOLDER     # replaced by setup.sh from OPENAI_BASE_URL in .env
   # api_key is read from OPENAI_API_KEY in ~/.hermes/.env
 
 skills:

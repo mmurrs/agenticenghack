@@ -17,6 +17,12 @@ pip install -q -r "$PRICEPILOT_DIR/requirements.txt"
 echo "==> Writing Hermes config..."
 mkdir -p "$HERMES_HOME"
 cp "$PRICEPILOT_DIR/hermes/hermes-config.yaml" "$HERMES_HOME/config.yaml"
+# Fill in base_url from env (source .env if available)
+# shellcheck disable=SC1090
+[ -f "$HERMES_HOME/.env" ] && set -a && source "$HERMES_HOME/.env" && set +a || true
+if [ -n "${OPENAI_BASE_URL:-}" ]; then
+  sed -i "s|OPENAI_BASE_URL_PLACEHOLDER|$OPENAI_BASE_URL|" "$HERMES_HOME/config.yaml"
+fi
 
 echo "==> Setting model (custom LiteLLM provider)..."
 hermes config set model qwen35-35b 2>/dev/null || true
