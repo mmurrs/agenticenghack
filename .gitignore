@@ -6,6 +6,9 @@
 # Claude Code local overrides (may contain secrets)
 .claude/settings.local.json
 
+# Personal per-developer Claude notes (intentionally not shared)
+CLAUDE.md
+
 # Node
 node_modules/
 dist/
@@ -37,3 +40,4 @@ yarn-error.log*
 # Misc
 .cache/
 tmp/
+.understand-anything/
