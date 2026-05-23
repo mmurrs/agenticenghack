@@ -1,60 +1,84 @@
 ---
 name: find-best-price
-description: Search Amazon and Walmart by product keywords and return the best (lowest) price. Use when the user asks "find best price for X", "how much does X cost?", "where can I buy X cheapest?", or any open-ended price discovery question without a specific URL.
+description: Find the cheapest price for a shoe or product using Nimble agents. Use when the user asks "find best price for X", "how much does X cost?", "where can I buy X cheapest?", or any open-ended price discovery question without a specific URL.
 triggers:
   - "find best price"
   - "best price for"
   - "cheapest"
   - "how much does"
   - "where can I buy"
-  - "price of"
+  - "find price"
   - "search for price"
+  - "price of"
 ---
 
 # find-best-price
 
-Search Amazon and Walmart for a product by keyword and return the best available price.
+Search Amazon for the cheapest offer for a specific product using Nimble's agent-based search.
 
 ## When to use
 
-Use this skill when the user asks about prices WITHOUT providing a specific product URL. Examples:
-- "find the best price for Crocs size 10 male white"
-- "how much are AirPods Pro?"
-- "where's the cheapest iPhone 15?"
+Use this skill when the user asks about prices WITHOUT providing a specific product URL. For a known URL, use `check-price` or `track-product` instead.
 
-For tracking a product at a URL, use `track-product` instead.
+## Step 1 — Extract structured fields
 
-## Steps
+Parse the user's message into these fields. **Do not guess size — ask if missing.**
 
-1. Extract the product search query from the user's message (include size, color, model specifics).
+| Field | Required | Notes |
+|-------|----------|-------|
+| `brand` | yes | e.g. "Crocs", "Nike" |
+| `model` | yes | e.g. "Classic Clog", "Killshot 2" |
+| `size` | **yes — ask if missing** | numeric US size, e.g. 10 or 11.5 |
+| `gender` | no | "men" / "women" / "kids" / "unisex" — default "men" |
+| `color` | no | strongly recommended for accuracy |
 
-2. Run the search tool:
+If size is missing, ask: "What size are you looking for? (US size, e.g. 10)"
 
-```
-cd $PRICEPILOT_DIR && python tools/find_best_price.py "<query>"
-```
-
-3. Parse the JSON array of results (sorted lowest price first).
-
-4. Present results to the user in a clear table format:
+## Step 2 — Run the search tool
 
 ```
-🏷️ Best prices for: **<query>**
+cd $PRICEPILOT_DIR && python tools/find_cheapest.py \
+  --brand "<brand>" \
+  --model "<model>" \
+  --size <size> \
+  --gender <gender> \
+  --color "<color>" \
+  --query "<original user query>"
+```
 
-| # | Store | Price | Product |
-|---|-------|-------|---------|
-| 1 | Amazon | $XX.XX | <title> |
-| 2 | Walmart | $XX.XX | <title> |
+Omit `--color` if not provided. The tool prints a JSON object (`CheapestOfferResponse`).
+
+## Step 3 — Format the response
+
+**If a best offer is found** (`best` key is not null):
+
+```
+🏷️ Best price for **<brand> <model>** (Size <size>, <gender>):
+
+**$<best.price>** on <best.source> — [<best.title>](<best.url>)
+Total with shipping: $<best.total_price>
+In stock: ✅
+
+Other offers checked:
+| Store | Price | Title |
+|-------|-------|-------|
+| <source> | $<price> | <title> |
 ...
 
-💡 Best deal: **$XX.XX** on <store> → [link](<url>)
-
-Want me to track this product and alert you when it drops below a target price? Just say "track <url> under $XX"
+Want me to track this and alert you when it drops below a target? Say "track <url> under $X"
 ```
 
-5. If no results found, tell the user and suggest they provide a direct Amazon/Walmart URL.
+**If no best offer** (`best` is null):
+
+```
+I couldn't find a buyable offer for **<brand> <model>** size <size> on Amazon right now.
+Try:
+- A slightly different size or color
+- Pasting a direct Amazon/Walmart URL (I can check that with `check-price`)
+```
 
 ## Error handling
 
-- If `find_best_price.py` returns an error, apologize and suggest using a direct product URL with the `check-price` skill.
-- If price is 0.0, note that the price couldn't be determined and provide the URL for the user to check manually.
+- If the tool prints `{"error": "..."}`, apologize and suggest checking a direct product URL with `check-price`.
+- If `size.value` is not recognized, ask the user to clarify (whole or half size).
+- The `missing_sources` array in the response lists sources that had no offer or are not yet wired — ignore those silently unless all sources failed.
