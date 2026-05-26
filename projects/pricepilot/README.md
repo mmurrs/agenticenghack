@@ -4,71 +4,58 @@
 - **Paid agent endpoint:** `POST /find_cheapest`
 - **Price:** `$0.05` per successful check via x402 or MPP
 
-PricePilot is a productized hackathon prototype for agent commerce. It was built for the Agentic Engineering Hackathon (NYC 2026) around a narrow question: if an autonomous agent is going to tell someone where to buy a product, how does it verify the current buyable price instead of guessing from stale search snippets?
+PricePilot is a paid shopping tool for AI agents. It was built at the **Agentic Engineering Hackathon NYC 2026** to explore what commerce looks like when agents can discover a tool, pay for it, and get back a structured answer they can trust.
 
-The answer is a shopping receipt API. An agent sends a precise product spec, PricePilot checks retailer availability, ranks in-stock offers, and returns the cheapest verified buy link as structured JSON. The Vercel deployment turns that into a paid tool that other agents can discover, pay for, and call on demand.
+The product answers a simple question: **where should I buy this exact product right now?**
 
-The live Vercel app at https://pricepilot-sepia.vercel.app is the product surface: it explains the tool, exposes the API contract, publishes agent-readable metadata, and demonstrates the payment flow. The hackathon assistant also includes a Hermes + Telegram workflow for natural-language shopping, price tracking, and alerts.
+Instead of asking an agent to guess from stale search snippets, PricePilot gives the agent a narrow API: send a product spec, pay a small fee, and receive a receipt-style response with the cheapest verified buyable offer.
 
-## Product Overview
+## What It Is
 
-PricePilot is designed for three users:
+PricePilot is a productized hackathon prototype with two connected surfaces:
 
-- **Shoppers** ask for the cheapest place to buy a specific item and get a receipt-style answer with the retailer, price, seller, and buy link.
-- **Agents** call a typed endpoint instead of scraping the open web themselves. The response is predictable enough to use inside a checkout, alerting, or recommendation flow.
-- **Builders** can monetize expensive live price checks with HTTP 402 payments, while still giving agents a clean OpenAPI and skill interface.
+- A public Vercel app that explains the product and exposes the paid API.
+- A Hermes-powered shopping assistant flow that can answer shopper requests, track products, and send price-drop alerts.
 
-The core product promise is simple: name the exact product, pay a small fee, get the cheapest currently buyable offer across supported retailers.
+The Vercel deployment is the main product surface. It includes the homepage, paid endpoint, OpenAPI metadata, agent skill file, and LLM-readable docs so another agent can understand how to call it.
 
-## What It Does
+## Why It Matters
 
-- Accepts a structured product spec: `brand`, `model`, optional `color`, `size`, `condition`, `postal_code`, and `source_scope`.
-- Resolves the product against Amazon and Walmart coverage.
-- Filters for exact-enough variants so a shopper asking for a shoe size, colorway, storage capacity, or condition does not get a near miss.
-- Returns a receipt JSON object with `product_id`, `best`, `all_offers`, `missing_sources`, and `checked_at`.
-- Publishes discovery surfaces for agents: `/openapi.json`, `/.well-known/x402`, `/skill.md`, and `/llms.txt`.
-- Supports paid access through both x402 and MPP, so agents can pay using the payment rail they already have.
-- In the Hermes workflow, stores observations in ClickHouse and can trigger Telegram alerts when tracked products drop below a target price.
+Shopping agents are only useful if they can act on current, specific, buyable data. A normal web search result may show the wrong variant, an old price, an out-of-stock listing, or an estimated marketplace price.
 
-## Live Vercel Surface
+PricePilot treats a product lookup like a paid job:
 
-The deployed product lives at:
+1. The agent states the exact product.
+2. PricePilot checks supported retailers.
+3. It filters for buyable, in-stock offers.
+4. It returns a structured receipt the agent can show to the user or use in another workflow.
 
-- Homepage: https://pricepilot-sepia.vercel.app
-- Paid endpoint: `POST https://pricepilot-sepia.vercel.app/find_cheapest`
-- OpenAPI: https://pricepilot-sepia.vercel.app/openapi.json
-- Agent skill: https://pricepilot-sepia.vercel.app/skill.md
-- LLM metadata: https://pricepilot-sepia.vercel.app/llms.txt
-- Health check: https://pricepilot-sepia.vercel.app/health
+That turns live price discovery into a reusable agent tool instead of a one-off scrape.
 
-The homepage is intentionally not just a marketing page. It is the public contract for the tool: what it costs, what the endpoint expects, how an agent should pay, and what shape comes back.
+## How It Works
 
-## How the Paid Endpoint Works
+An agent calls:
 
-1. An agent sends a product request to `POST /find_cheapest`.
-2. `dual402.js` protects the route and returns `402 Payment Required` when no valid payment is attached.
-3. The agent retries with either an x402 payment credential or an MPP `Authorization: Payment ...` header.
-4. After payment verification, PricePilot runs the offer lookup and returns the cheapest verified buyable offer.
-5. The response includes a stable `product_id` so future checks and price history can refer to the same item.
-
-Example request:
-
-```bash
-curl -i -X POST https://pricepilot-sepia.vercel.app/find_cheapest \
-  -H 'content-type: application/json' \
-  -d '{
-    "brand": "Sony",
-    "model": "WH-1000XM5",
-    "color": "black",
-    "condition": "new",
-    "postal_code": "10001",
-    "source_scope": "retail"
-  }'
+```text
+POST https://pricepilot-sepia.vercel.app/find_cheapest
 ```
 
-Without payment, the expected first response is a `402` challenge. A payment-aware client uses that challenge to retry and receive the JSON receipt.
+with a request like:
 
-Example success shape:
+```json
+{
+  "brand": "Sony",
+  "model": "WH-1000XM5",
+  "color": "black",
+  "condition": "new",
+  "postal_code": "10001",
+  "source_scope": "retail"
+}
+```
+
+If no payment is attached, PricePilot returns `402 Payment Required`. A payment-aware agent retries with either an x402 payment credential or an MPP payment header. Once paid, the endpoint returns the cheapest verified offer.
+
+Example response shape:
 
 ```json
 {
@@ -79,10 +66,7 @@ Example success shape:
     "currency": "USD",
     "in_stock": true,
     "seller": "Amazon.com",
-    "url": "https://www.amazon.com/dp/B09XS7JWHH",
-    "variant": {
-      "color": "black"
-    }
+    "url": "https://www.amazon.com/dp/B09XS7JWHH"
   },
   "all_offers": [
     {
@@ -103,47 +87,41 @@ Example success shape:
 }
 ```
 
-## Hackathon Architecture
+## Agent Flow
 
-PricePilot had two connected surfaces during the hackathon: a user-facing Hermes assistant and a productized HTTP API.
+At a high level, PricePilot works like this:
+
+```text
+Shopper or agent asks for the best price
+  -> PricePilot receives a structured product spec
+  -> payment is verified through x402 or MPP
+  -> retailer offers are checked and ranked
+  -> the cheapest buyable offer is returned as receipt JSON
+```
+
+For the hackathon assistant demo, Hermes handled the conversational layer:
 
 ```text
 Telegram shopper
-  -> Hermes gateway
-  -> PricePilot skills
-  -> Python tools
-  -> Nimble retailer lookup
-  -> ClickHouse price events
-  -> Senso report URL
-  -> Telegram answer or alert
-
-Agent or paid client
-  -> Vercel Express app
-  -> dual402 payment middleware
-  -> /find_cheapest contract
-  -> offer resolver
-  -> receipt JSON
+  -> Hermes agent
+  -> PricePilot lookup
+  -> retailer price check
+  -> ClickHouse price history
+  -> Telegram answer or price-drop alert
 ```
 
-The Hermes side proved the agent experience: a shopper could ask in natural language, track products, and receive alerts. The Vercel side packaged the valuable part as a reusable agent tool: a paid, typed, discoverable endpoint that any shopping bot could call.
+## Live URLs
 
-## Core Components
+- Product: https://pricepilot-sepia.vercel.app
+- Paid endpoint: https://pricepilot-sepia.vercel.app/find_cheapest
+- OpenAPI: https://pricepilot-sepia.vercel.app/openapi.json
+- Agent skill: https://pricepilot-sepia.vercel.app/skill.md
+- LLM docs: https://pricepilot-sepia.vercel.app/llms.txt
+- Health check: https://pricepilot-sepia.vercel.app/health
 
-- `index.html` - product page for the Vercel deployment.
-- `server.js` - Express app serving the landing page, discovery routes, health check, and paid `/find_cheapest` endpoint.
-- `dual402.js` - payment middleware that accepts both x402 and MPP on the same route.
-- `api/index.js` - Vercel serverless entrypoint.
-- `tools/find_cheapest.py` - Hermes CLI path for Nimble-backed product lookup.
-- `tools/find_cheapest_stub.js` - Vercel demo resolver with the same response contract as the paid endpoint.
-- `integrations/nimble_client.py` - retailer scraping/search integration.
-- `integrations/clickhouse_client.py` - price event and tracking storage.
-- `integrations/senso_client.py` - report-generation interface used by alert flows.
-- `skills/` - Hermes skills for best-price search, URL checks, tracking, history, and price alerts.
-- `hermes/` - setup, config, validation, and runtime scripts for the Telegram assistant.
+## Demo
 
-## Demo Flow
-
-**Agent endpoint demo**
+Agent endpoint demo:
 
 1. Visit https://pricepilot-sepia.vercel.app.
 2. Inspect `/openapi.json` or `/skill.md` to see how an agent discovers the tool.
@@ -151,76 +129,19 @@ The Hermes side proved the agent experience: a shopper could ask in natural lang
 4. Receive a `402` challenge, pay with x402 or MPP, and retry.
 5. Get a receipt with the cheapest verified offer.
 
-**Hermes shopping assistant demo**
+Hermes assistant demo:
 
-1. Send Telegram: `find the best price for Crocs Classic Clog white size 10`.
-2. Hermes selects the best-price skill and calls the PricePilot toolchain.
-3. Nimble checks retailer pages, PricePilot ranks offers, and Hermes replies with the best buyable result.
-4. Send Telegram: `track https://amazon.com/dp/B0015259Z8 under $30`.
-5. ClickHouse stores the target and price history.
-6. The price-alert skill polls on a schedule and sends a Telegram alert when the product crosses the threshold.
+1. Ask in Telegram: `find the best price for Crocs Classic Clog white size 10`.
+2. Hermes structures the request and calls the PricePilot toolchain.
+3. PricePilot checks retailer data and returns the best buyable result.
+4. A shopper can also track a product below a target price and receive an alert later.
 
 ## Prototype Status
 
-This repo reflects the hackathon build, so the important distinction is:
+PricePilot is a hackathon prototype, not a finished shopping platform. The important product idea is the agent-commerce loop: a discoverable tool, a small per-call payment, a live product check, and a structured answer that another agent can use.
 
-- The Vercel deployment is the productized paid API surface: landing page, payment challenge, OpenAPI, x402 discovery, skill metadata, and receipt contract.
-- The Hermes workflow contains the fuller agent assistant path: Telegram routing, Nimble-backed lookup tools, ClickHouse persistence, and scheduled alerts.
-- `tools/find_cheapest_stub.js` keeps the Vercel paid route testable and marketplace-indexable while the live Nimble resolver is being wired into that route.
-- Senso report generation is represented by an integration interface/stub and is used by the alert flow design.
-
-## Running Locally
-
-Install the Vercel/API dependencies:
-
-```bash
-npm install
-```
-
-Start the local Express app:
-
-```bash
-RECIPIENT_WALLET=0x1111111111111111111111111111111111111111 \
-MPP_SECRET_KEY=dev-secret \
-BASE_URL=http://localhost:3000 \
-node server.js
-```
-
-Check the local server:
-
-```bash
-curl http://localhost:3000/health
-```
-
-The paid endpoint will return a `402` challenge unless the request includes a valid x402 or MPP payment credential.
-
-## Hermes Runtime
-
-The Hermes assistant was run from the original hackathon workspace layout where this directory lived at `projects/pricepilot`. The scripts in `hermes/` document that workflow and may need path adjustments if this repo is cloned standalone.
-
-- `hermes/setup.sh` installs Hermes, Python dependencies, config, and skills.
-- `hermes/validate.sh` checks the toolchain.
-- `hermes/start.sh` launches the Telegram gateway and scheduled price polling.
-- `hermes/deploy.sh` syncs updated skills and restarts the gateway.
-
-Required services for the full assistant:
-
-- OpenAI-compatible LiteLLM endpoint for Hermes.
-- Telegram bot token.
-- Nimble API key for retailer data.
-- ClickHouse Cloud database for price events and tracked products.
-- Senso.ai API credentials for report URLs.
-- Wallet/payment environment for x402 and MPP.
-
-## Tests
-
-```bash
-pip install -r requirements.txt
-pytest tests/ -v
-```
-
-The Python tests focus on the storage/client contract and mock external services where possible. The Vercel endpoint can be smoke-tested with `/health`, `/openapi.json`, and an unpaid `POST /find_cheapest` that should return a payment challenge.
+The Vercel surface demonstrates the paid endpoint and agent metadata. The fuller hackathon workflow explored Telegram, Hermes, retailer lookup, ClickHouse price history, and alerting.
 
 ## Team and Sponsors
 
-Built by the PricePilot hackathon team with Nimble, ClickHouse, Senso.ai, Daytona, Hermes, x402, MPP, and AgentCash.
+Built at the **Agentic Engineering Hackathon NYC 2026** with Nimble, ClickHouse, Senso.ai, Daytona, Hermes, x402, MPP, and AgentCash.
